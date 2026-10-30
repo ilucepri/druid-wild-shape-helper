@@ -1,0 +1,158 @@
+.dnd5e2 .wsh-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.5rem 0.25rem;
+}
+
+.dnd5e2 .wsh-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 0.75rem;
+  border: 1px solid var(--dnd5e-color-gold, #9f9275);
+  border-radius: 6px;
+}
+
+.dnd5e2 .wsh-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 10rem;
+}
+
+.dnd5e2 .wsh-status img {
+  width: 48px;
+  height: 48px;
+  border: none;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.dnd5e2 .wsh-label {
+  display: block;
+  font-size: var(--font-size-11, 11px);
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+
+.dnd5e2 .wsh-meta {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.dnd5e2 .wsh-pill {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.08);
+  font-size: var(--font-size-12, 12px);
+  white-space: nowrap;
+}
+
+.dnd5e2 .wsh-button {
+  width: auto;
+  padding: 0 1rem;
+  font-weight: bold;
+}
+
+.dnd5e2 .wsh-title {
+  display: flex;
+  justify-content: space-between;
+  margin: 0;
+  border-bottom: 1px solid var(--dnd5e-color-gold, #9f9275);
+}
+
+.dnd5e2 .wsh-forms {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dnd5e2 .wsh-form {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 6px;
+}
+
+.dnd5e2 .wsh-form img {
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 4px;
+  object-fit: cover;
+}
+
+.dnd5e2 .wsh-form-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.dnd5e2 .wsh-form-name {
+  overflow: hidden;
+  font-weight: bold;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dnd5e2 .wsh-form-cr {
+  font-size: var(--font-size-12, 12px);
+  opacity: 0.75;
+}
+
+.dnd5e2 .wsh-locked {
+  opacity: 0.5;
+}
+
+.dnd5e2 .wsh-empty,
+.dnd5e2 .wsh-hint {
+  margin: 0;
+  font-style: italic;
+  opacity: 0.7;
+}
+
+/* Form picker dialog */
+.wsh-dialog .wsh-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.wsh-dialog .wsh-choice {
+  display: grid;
+  grid-template-columns: auto 40px 1fr auto;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.wsh-dialog .wsh-choice:has(input:checked) {
+  background: rgba(255, 255, 255, 0.12);
+  outline: 1px solid var(--color-warm-2, #c9593f);
+}
+
+.wsh-dialog .wsh-choice img {
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 4px;
+  object-fit: cover;
+}
+
+.wsh-dialog .wsh-choice-cr {
+  opacity: 0.75;
+  white-space: nowrap;
+}

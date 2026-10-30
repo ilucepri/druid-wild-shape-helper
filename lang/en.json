@@ -1,0 +1,28 @@
+{
+  "WILDSHAPEHELPER": {
+    "Tab": "Wild Shape",
+    "Status": "Status",
+    "NotTransformed": "Natural form",
+    "CurrentForm": "Current form",
+    "WildShape": "Wild Shape",
+    "Revert": "Revert form",
+    "KnownForms": "Known Forms",
+    "NoForms": "No known forms yet.",
+    "DropHint": "Drag a creature from a compendium onto this tab to add it as a known form.",
+    "ChooseForm": "Choose a form",
+    "CR": "CR",
+    "MaxCR": "Maximum challenge rating",
+    "Flying": "Flying forms",
+    "Flies": "Has a fly speed",
+    "Uses": "Wild Shape uses remaining",
+    "Locked": "Not available at your current level",
+    "Remove": "Remove form",
+    "Chat": "{actor} uses Wild Shape and turns into <strong>{form}</strong>.",
+    "Warning": {
+      "NoPermission": "You don't have permission to transform. The GM must enable \"Allow Polymorphing\" in the D&D5e settings.",
+      "NoUses": "No Wild Shape uses remaining.",
+      "MissingForm": "The selected form could not be found.",
+      "NotNPC": "Only NPC creatures can be known forms."
+    }
+  }
+}

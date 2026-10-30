@@ -1,0 +1,84 @@
+<section class="tab wsh-tab {{ tab.cssClass }}" data-tab="{{ tab.id }}" data-group="{{ tab.group }}">
+    {{#with wildShape}}
+
+    {{!-- Current state and main button --}}
+    <header class="wsh-header">
+        <div class="wsh-status">
+            {{#if transformed}}
+            <img src="{{ currentImg }}" alt="">
+            <div>
+                <span class="wsh-label">{{ localize "WILDSHAPEHELPER.CurrentForm" }}</span>
+                <strong>{{ currentForm }}</strong>
+            </div>
+            {{else}}
+            <div>
+                <span class="wsh-label">{{ localize "WILDSHAPEHELPER.Status" }}</span>
+                <strong>{{ localize "WILDSHAPEHELPER.NotTransformed" }}</strong>
+            </div>
+            {{/if}}
+        </div>
+
+        <div class="wsh-meta">
+            {{#if uses}}
+            <span class="wsh-pill" data-tooltip="WILDSHAPEHELPER.Uses">
+                <i class="fas fa-paw" inert></i> {{ uses.value }} / {{ uses.max }}
+            </span>
+            {{/if}}
+            {{#if maxCR}}
+            <span class="wsh-pill" data-tooltip="WILDSHAPEHELPER.MaxCR">{{ localize "WILDSHAPEHELPER.CR" }} ≤ {{ maxCR }}</span>
+            {{/if}}
+            <span class="wsh-pill" data-tooltip="WILDSHAPEHELPER.Flying">
+                <i class="fas fa-feather" inert></i>
+                {{#if maxFlyCR}}{{ localize "WILDSHAPEHELPER.CR" }} ≤ {{ maxFlyCR }}{{else}}<i class="fas fa-ban" inert></i>{{/if}}
+            </span>
+        </div>
+
+        {{#if owner}}
+        {{#if transformed}}
+        <button type="button" class="wsh-button wsh-revert" data-wsh-action="revert">
+            <i class="fas fa-rotate-left" inert></i> {{ localize "WILDSHAPEHELPER.Revert" }}
+        </button>
+        {{else}}
+        <button type="button" class="wsh-button" data-wsh-action="transform" {{#unless canUse}}disabled{{/unless}}>
+            <i class="fas fa-paw" inert></i> {{ localize "WILDSHAPEHELPER.WildShape" }}
+        </button>
+        {{/if}}
+        {{/if}}
+    </header>
+
+    {{!-- Known forms --}}
+    <h3 class="wsh-title">
+        {{ localize "WILDSHAPEHELPER.KnownForms" }}
+        <span>{{ forms.length }}{{#if maxKnown}} / {{ maxKnown }}{{/if}}</span>
+    </h3>
+    <ul class="wsh-forms">
+        {{#each forms}}
+        <li class="wsh-form {{#unless allowed}}wsh-locked{{/unless}}" data-uuid="{{ uuid }}">
+            <img src="{{ img }}" alt="">
+            <div class="wsh-form-info">
+                <a class="wsh-form-name" data-wsh-action="open">{{ name }}</a>
+                <span class="wsh-form-cr">
+                    {{ localize "WILDSHAPEHELPER.CR" }} {{ crLabel }}
+                    {{#if fly}}<i class="fas fa-feather" data-tooltip="WILDSHAPEHELPER.Flies" inert></i>{{/if}}
+                </span>
+            </div>
+            {{#unless allowed}}
+            <i class="fas fa-lock" data-tooltip="WILDSHAPEHELPER.Locked"></i>
+            {{/unless}}
+            {{#if (and removable @root.wildShape.owner)}}
+            <button type="button" class="unbutton wsh-remove" data-wsh-action="remove"
+                    data-tooltip="WILDSHAPEHELPER.Remove" aria-label="{{ localize 'WILDSHAPEHELPER.Remove' }}">
+                <i class="fas fa-xmark" inert></i>
+            </button>
+            {{/if}}
+        </li>
+        {{else}}
+        <li class="wsh-empty">{{ localize "WILDSHAPEHELPER.NoForms" }}</li>
+        {{/each}}
+    </ul>
+    {{#if owner}}
+    <p class="wsh-hint">{{ localize "WILDSHAPEHELPER.DropHint" }}</p>
+    {{/if}}
+
+    {{/with}}
+</section>

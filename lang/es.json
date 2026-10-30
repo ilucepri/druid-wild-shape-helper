@@ -1,0 +1,28 @@
+{
+  "WILDSHAPEHELPER": {
+    "Tab": "Forma Salvaje",
+    "Status": "Estado",
+    "NotTransformed": "Forma natural",
+    "CurrentForm": "Forma actual",
+    "WildShape": "Forma Salvaje",
+    "Revert": "Deshacer forma",
+    "KnownForms": "Formas conocidas",
+    "NoForms": "Todavía no hay formas conocidas.",
+    "DropHint": "Arrastra una criatura de un compendio a esta pestaña para añadirla como forma conocida.",
+    "ChooseForm": "Elige una forma",
+    "CR": "VD",
+    "MaxCR": "Valor de desafío máximo",
+    "Flying": "Formas voladoras",
+    "Flies": "Tiene velocidad de vuelo",
+    "Uses": "Usos de Forma Salvaje restantes",
+    "Locked": "No disponible a tu nivel actual",
+    "Remove": "Quitar forma",
+    "Chat": "{actor} usa Forma Salvaje y se transforma en <strong>{form}</strong>.",
+    "Warning": {
+      "NoPermission": "No tienes permiso para transformarte. El DM debe activar \"Allow Polymorphing\" en los ajustes de D&D5e.",
+      "NoUses": "No te quedan usos de Forma Salvaje.",
+      "MissingForm": "No se ha encontrado la forma seleccionada.",
+      "NotNPC": "Solo las criaturas NPC pueden ser formas conocidas."
+    }
+  }
+}
