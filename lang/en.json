@@ -22,7 +22,14 @@
       "NoPermission": "You don't have permission to transform. The GM must enable \"Allow Polymorphing\" in the D&D5e settings.",
       "NoUses": "No Wild Shape uses remaining.",
       "MissingForm": "The selected form could not be found.",
-      "NotNPC": "Only NPC creatures can be known forms."
-    }
+      "NotNPC": "Only NPC creatures can be known forms.",
+      "TooManyForms": "You already know the maximum number of forms."
+    },
+    "ManageForms": "Choose forms",
+    "AvailableForms": "Available forms",
+    "Search": "Search beasts…",
+    "Add": "Learn this form",
+    "NoCandidates": "No more beasts available at your level.",
+    "FullHint": "You already know the maximum number of forms. Remove one to learn another."
   }
 }

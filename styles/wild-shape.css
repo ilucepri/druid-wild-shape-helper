@@ -156,3 +156,83 @@
   opacity: 0.75;
   white-space: nowrap;
 }
+
+.dnd5e2 .wsh-title .wsh-count {
+  font-weight: normal;
+  opacity: 0.75;
+}
+
+.dnd5e2 .wsh-manage {
+  width: auto;
+  height: auto;
+  margin-bottom: 4px;
+  padding: 2px 10px;
+  font-size: var(--font-size-12, 12px);
+}
+
+/* Forms manager window */
+.wsh-manager .window-content {
+  overflow: hidden;
+}
+
+.wsh-manager .wsh-manager-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  height: 100%;
+  min-height: 0;
+}
+
+.wsh-manager .wsh-column {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-height: 0;
+}
+
+.wsh-manager .wsh-column-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  flex: 1;
+  margin: 0;
+  padding: 0 0.25rem 0 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.wsh-manager .wsh-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 6px;
+}
+
+.wsh-manager .wsh-row[hidden] {
+  display: none;
+}
+
+.wsh-manager .wsh-row img {
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 4px;
+  object-fit: cover;
+}
+
+.wsh-manager .wsh-row-button {
+  padding: 0 0.4rem;
+}
+
+.wsh-manager .wsh-row-button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.wsh-manager .wsh-full {
+  color: var(--dnd5e-color-maroon, #7b2a1d);
+  font-weight: bold;
+  opacity: 1;
+}

@@ -2,6 +2,7 @@ const MODULE_ID = "druid-wild-shape-helper";
 const BUILDER_ID = "dnd5e-character-builder";
 const TAB_ID = "wildShape";
 const TEMPLATE = `modules/${MODULE_ID}/templates/wild-shape-tab.hbs`;
+const MANAGER_TEMPLATE = `modules/${MODULE_ID}/templates/forms-manager.hbs`;
 const FORM_ITEMS = new Set(["wild-shape", "circle-forms"]);
 
 /* -------------------------------------------- */
@@ -22,7 +23,7 @@ Hooks.once("init", () => {
   Sheet.PARTS = parts;
 
   Sheet.TABS.push({ tab: TAB_ID, label: "WILDSHAPEHELPER.Tab", icon: "fas fa-paw", condition: hasWildShape });
-  foundry.applications.handlebars.loadTemplates([TEMPLATE]);
+  foundry.applications.handlebars.loadTemplates([TEMPLATE, MANAGER_TEMPLATE]);
 });
 
 Hooks.on("dnd5e.prepareSheetContext", (sheet, partId, context) => {
@@ -64,17 +65,65 @@ function hasWildShape(actor) {
 }
 
 /**
- * Known forms chosen in the character builder plus forms dropped onto the tab.
+ * Known forms chosen in the character builder plus forms added here, minus the ones removed here.
  * @param {Actor5e} actor  Original actor.
  * @returns {object[]}
  */
 function getKnownForms(actor) {
-  const builder = getWildShapeItem(actor)?.getFlag(BUILDER_ID, "knownWildShapeForms") ?? [];
+  // Read the builder flag directly: getFlag throws when that module isn't active.
+  const builder = foundry.utils.getProperty(getWildShapeItem(actor)?.flags ?? {}, `${BUILDER_ID}.knownWildShapeForms`) ?? [];
   const custom = actor.getFlag(MODULE_ID, "forms") ?? [];
+  const removed = new Set(actor.getFlag(MODULE_ID, "removed") ?? []);
   const forms = new Map();
-  for ( const f of builder ) forms.set(f.uuid, { ...f, removable: false });
-  for ( const f of custom ) if ( !forms.has(f.uuid) ) forms.set(f.uuid, { ...f, removable: true });
-  return Array.from(forms.values()).sort((a, b) => (a.cr - b.cr) || a.name.localeCompare(b.name));
+  for ( const f of [...builder, ...custom] ) if ( !forms.has(f.uuid) && !removed.has(f.uuid) ) forms.set(f.uuid, f);
+  return sortForms(Array.from(forms.values()));
+}
+
+function sortForms(forms) {
+  return forms.sort((a, b) => (a.cr - b.cr) || a.name.localeCompare(b.name));
+}
+
+/**
+ * How many forms the druid can know: the class scale value if there is one, otherwise the 2024 table.
+ * @param {Actor5e} actor  Original actor.
+ * @returns {number|null}
+ */
+function getMaxKnown(actor) {
+  const scale = actor.system.scale?.druid?.["known-forms"]?.value;
+  if ( scale ) return scale;
+  const level = actor.classes?.druid?.system.levels ?? 0;
+  if ( level < 2 ) return null;
+  return level >= 8 ? 8 : level >= 4 ? 6 : 4;
+}
+
+let beastIndex;
+
+/**
+ * Every Beast in the Actor compendiums the user can see, one entry per name (module packs win over the system's).
+ * @returns {Promise<object[]>}
+ */
+async function getBeastIndex() {
+  if ( beastIndex ) return beastIndex;
+  const fields = ["img", "system.details.cr", "system.details.type.value", "system.attributes.movement.fly"];
+  const packs = game.packs.filter(p => (p.documentName === "Actor") && p.visible)
+    .sort((a, b) => (a.metadata.packageType === "system") - (b.metadata.packageType === "system"));
+  const byName = new Map();
+  for ( const pack of packs ) {
+    for ( const entry of await pack.getIndex({ fields }) ) {
+      const get = key => foundry.utils.getProperty(entry, key);
+      const key = entry.name.toLowerCase();
+      if ( (entry.type !== "npc") || (get("system.details.type.value") !== "beast") || byName.has(key) ) continue;
+      byName.set(key, {
+        uuid: entry.uuid,
+        name: entry.name,
+        img: entry.img,
+        cr: get("system.details.cr") ?? 0,
+        fly: (get("system.attributes.movement.fly") ?? 0) > 0,
+        sourceLabel: pack.metadata.label
+      });
+    }
+  }
+  return beastIndex = sortForms(Array.from(byName.values()));
 }
 
 /**
@@ -123,7 +172,7 @@ function prepareContext(actor) {
     currentForm: actor.isPolymorphed ? actor.name : null,
     currentImg: actor.img,
     forms,
-    maxKnown: original.system.scale?.druid?.["known-forms"]?.value ?? null,
+    maxKnown: getMaxKnown(original),
     uses: uses?.max ? { value: uses.value, max: uses.max } : null,
     canUse: forms.some(f => f.allowed) && (!uses?.max || (uses.value > 0)),
     maxCR: Number.isFinite(maxCR) ? dnd5e.utils.formatCR(maxCR) : null,
@@ -141,6 +190,7 @@ async function onAction(actor, action, uuid) {
     case "revert": return actor.revertOriginalForm();
     case "open": return (await fromUuid(uuid))?.sheet.render(true);
     case "remove": return removeForm(getOriginalActor(actor), uuid);
+    case "manage": return FormsManager.open(getOriginalActor(actor));
   }
 }
 
@@ -217,20 +267,145 @@ async function onDrop(event, actor) {
   if ( source?.type !== "npc" ) {
     return ui.notifications.warn("WILDSHAPEHELPER.Warning.NotNPC", { localize: true });
   }
-  const forms = original.getFlag(MODULE_ID, "forms") ?? [];
-  if ( forms.some(f => f.uuid === source.uuid) ) return;
-  forms.push({
+  await addForm(original, {
     uuid: source.uuid,
     name: source.name,
     img: source.img,
     cr: source.system.details.cr ?? 0,
     fly: (source.system.attributes.movement.fly ?? 0) > 0
   });
-  await original.setFlag(MODULE_ID, "forms", forms);
   if ( original !== actor ) actor.sheet.render();
 }
 
+async function addForm(actor, form) {
+  const forms = (actor.getFlag(MODULE_ID, "forms") ?? []).filter(f => f.uuid !== form.uuid);
+  const removed = (actor.getFlag(MODULE_ID, "removed") ?? []).filter(uuid => uuid !== form.uuid);
+  forms.push({ uuid: form.uuid, name: form.name, img: form.img, cr: form.cr, fly: form.fly });
+  await actor.update({ [`flags.${MODULE_ID}`]: { forms, removed } });
+}
+
+/**
+ * Forget a known form. Builder forms can't be deleted from the builder's flag, so they are remembered as removed.
+ */
 async function removeForm(actor, uuid) {
   const forms = (actor.getFlag(MODULE_ID, "forms") ?? []).filter(f => f.uuid !== uuid);
-  await actor.setFlag(MODULE_ID, "forms", forms);
+  const removed = new Set(actor.getFlag(MODULE_ID, "removed") ?? []).add(uuid);
+  await actor.update({ [`flags.${MODULE_ID}`]: { forms, removed: Array.from(removed) } });
+}
+
+/* -------------------------------------------- */
+/*  Forms Manager                               */
+/* -------------------------------------------- */
+
+const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
+
+/**
+ * Window to review the known forms and pick new ones from the beasts allowed at the druid's level.
+ */
+class FormsManager extends HandlebarsApplicationMixin(ApplicationV2) {
+  constructor(actor, options={}) {
+    super({ ...options, id: `${MODULE_ID}-manager-${actor.id}` });
+    this.actor = actor;
+    // Re-render whenever the actor changes, also when a form is removed from the sheet tab.
+    actor.apps[this.id] = this;
+  }
+
+  _onClose(options) {
+    super._onClose(options);
+    delete this.actor.apps[this.id];
+  }
+
+  static DEFAULT_OPTIONS = {
+    classes: ["dnd5e2", "wsh-manager"],
+    window: { title: "WILDSHAPEHELPER.ManageForms", icon: "fas fa-paw", resizable: true },
+    position: { width: 680, height: 620 },
+    actions: {
+      addForm: FormsManager.#onAddForm,
+      removeForm: FormsManager.#onRemoveForm,
+      openForm: FormsManager.#onOpenForm
+    }
+  };
+
+  static PARTS = {
+    body: { template: MANAGER_TEMPLATE, scrollable: [".wsh-column-list"] }
+  };
+
+  /**
+   * Open the manager for an actor, reusing the window if it is already open.
+   * @param {Actor5e} actor  Original actor.
+   */
+  static open(actor) {
+    const existing = foundry.applications.instances.get(`${MODULE_ID}-manager-${actor.id}`);
+    return (existing ?? new this(actor)).render({ force: true });
+  }
+
+  /** Current text in the search box, kept across re-renders. */
+  #search = "";
+
+  get title() {
+    return `${game.i18n.localize("WILDSHAPEHELPER.ManageForms")}: ${this.actor.name}`;
+  }
+
+  async _prepareContext(options) {
+    const limits = getFormLimits(this.actor);
+    const max = getMaxKnown(this.actor);
+    const withLabels = f => ({ ...f, crLabel: dnd5e.utils.formatCR(f.cr), allowed: isFormAllowed(f, limits) });
+    const known = getKnownForms(this.actor).map(withLabels);
+    const knownUuids = new Set(known.map(f => f.uuid));
+    const knownNames = new Set(known.map(f => f.name.toLowerCase()));
+    const candidates = (await getBeastIndex())
+      .filter(f => !knownUuids.has(f.uuid) && !knownNames.has(f.name.toLowerCase()) && isFormAllowed(f, limits))
+      .map(f => ({ ...withLabels(f), search: f.name.toLowerCase() }));
+    const maxCR = Math.max(...limits.map(l => l.cr));
+    const maxFlyCR = Math.max(...limits.filter(l => l.fly).map(l => l.cr));
+    return {
+      known,
+      candidates,
+      max,
+      full: !!max && (known.length >= max),
+      search: this.#search,
+      maxCR: Number.isFinite(maxCR) ? dnd5e.utils.formatCR(maxCR) : null,
+      maxFlyCR: Number.isFinite(maxFlyCR) ? dnd5e.utils.formatCR(maxFlyCR) : null
+    };
+  }
+
+  async _onRender(context, options) {
+    await super._onRender(context, options);
+    const input = this.element.querySelector(".wsh-search");
+    input?.addEventListener("input", () => {
+      this.#search = input.value;
+      this.#applySearch();
+    });
+    this.#applySearch();
+  }
+
+  #applySearch() {
+    const query = this.#search.trim().toLowerCase();
+    for ( const row of this.element.querySelectorAll(".wsh-candidate") ) {
+      row.hidden = !!query && !row.dataset.search.includes(query);
+    }
+  }
+
+  async #findCandidate(target) {
+    const uuid = target.closest("[data-uuid]")?.dataset.uuid;
+    return (await getBeastIndex()).find(f => f.uuid === uuid);
+  }
+
+  static async #onAddForm(event, target) {
+    const form = await this.#findCandidate(target);
+    if ( !form ) return;
+    const max = getMaxKnown(this.actor);
+    if ( max && (getKnownForms(this.actor).length >= max) ) {
+      return ui.notifications.warn("WILDSHAPEHELPER.Warning.TooManyForms", { localize: true });
+    }
+    await addForm(this.actor, form);
+  }
+
+  static async #onRemoveForm(event, target) {
+    await removeForm(this.actor, target.closest("[data-uuid]")?.dataset.uuid);
+  }
+
+  static async #onOpenForm(event, target) {
+    (await fromUuid(target.closest("[data-uuid]")?.dataset.uuid))?.sheet.render(true);
+  }
 }

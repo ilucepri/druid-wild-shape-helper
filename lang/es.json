@@ -22,7 +22,14 @@
       "NoPermission": "No tienes permiso para transformarte. El DM debe activar \"Allow Polymorphing\" en los ajustes de D&D5e.",
       "NoUses": "No te quedan usos de Forma Salvaje.",
       "MissingForm": "No se ha encontrado la forma seleccionada.",
-      "NotNPC": "Solo las criaturas NPC pueden ser formas conocidas."
-    }
+      "NotNPC": "Solo las criaturas NPC pueden ser formas conocidas.",
+      "TooManyForms": "Ya conoces el máximo de formas."
+    },
+    "ManageForms": "Elegir formas",
+    "AvailableForms": "Formas disponibles",
+    "Search": "Buscar bestias…",
+    "Add": "Aprender esta forma",
+    "NoCandidates": "No hay más bestias disponibles a tu nivel.",
+    "FullHint": "Ya conoces el máximo de formas. Quita una para aprender otra."
   }
 }

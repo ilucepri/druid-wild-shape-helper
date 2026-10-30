@@ -1,0 +1,68 @@
+<div class="wsh-manager-body">
+
+    {{!-- Forms the druid knows now --}}
+    <section class="wsh-column">
+        <h3 class="wsh-title">
+            {{ localize "WILDSHAPEHELPER.KnownForms" }}
+            <span class="wsh-count {{#if full}}wsh-full{{/if}}">{{ known.length }}{{#if max}} / {{ max }}{{/if}}</span>
+        </h3>
+        <ul class="wsh-column-list">
+            {{#each known}}
+            <li class="wsh-row {{#unless allowed}}wsh-locked{{/unless}}" data-uuid="{{ uuid }}">
+                <img src="{{ img }}" alt="">
+                <div class="wsh-form-info">
+                    <a class="wsh-form-name" data-action="openForm">{{ name }}</a>
+                    <span class="wsh-form-cr">
+                        {{ localize "WILDSHAPEHELPER.CR" }} {{ crLabel }}
+                        {{#if fly}}<i class="fas fa-feather" data-tooltip="WILDSHAPEHELPER.Flies" inert></i>{{/if}}
+                    </span>
+                </div>
+                <button type="button" class="unbutton wsh-row-button" data-action="removeForm"
+                        data-tooltip="WILDSHAPEHELPER.Remove" aria-label="{{ localize 'WILDSHAPEHELPER.Remove' }}">
+                    <i class="fas fa-trash" inert></i>
+                </button>
+            </li>
+            {{else}}
+            <li class="wsh-empty">{{ localize "WILDSHAPEHELPER.NoForms" }}</li>
+            {{/each}}
+        </ul>
+    </section>
+
+    {{!-- Beasts allowed at the druid's level --}}
+    <section class="wsh-column">
+        <h3 class="wsh-title">
+            {{ localize "WILDSHAPEHELPER.AvailableForms" }}
+            <span class="wsh-count">
+                {{#if maxCR}}{{ localize "WILDSHAPEHELPER.CR" }} ≤ {{ maxCR }}{{/if}}
+                · <i class="fas fa-feather" inert></i>
+                {{#if maxFlyCR}}{{ localize "WILDSHAPEHELPER.CR" }} ≤ {{ maxFlyCR }}{{else}}<i class="fas fa-ban" inert></i>{{/if}}
+            </span>
+        </h3>
+        <input type="search" class="wsh-search" value="{{ search }}"
+               placeholder="{{ localize 'WILDSHAPEHELPER.Search' }}" aria-label="{{ localize 'WILDSHAPEHELPER.Search' }}">
+        {{#if full}}<p class="wsh-hint">{{ localize "WILDSHAPEHELPER.FullHint" }}</p>{{/if}}
+        <ul class="wsh-column-list">
+            {{#each candidates}}
+            <li class="wsh-row wsh-candidate" data-uuid="{{ uuid }}" data-search="{{ search }}">
+                <img src="{{ img }}" alt="">
+                <div class="wsh-form-info">
+                    <a class="wsh-form-name" data-action="openForm">{{ name }}</a>
+                    <span class="wsh-form-cr">
+                        {{ localize "WILDSHAPEHELPER.CR" }} {{ crLabel }}
+                        {{#if fly}}<i class="fas fa-feather" data-tooltip="WILDSHAPEHELPER.Flies" inert></i>{{/if}}
+                        · {{ sourceLabel }}
+                    </span>
+                </div>
+                <button type="button" class="unbutton wsh-row-button" data-action="addForm"
+                        data-tooltip="WILDSHAPEHELPER.Add" aria-label="{{ localize 'WILDSHAPEHELPER.Add' }}"
+                        {{#if @root.full}}disabled{{/if}}>
+                    <i class="fas fa-plus" inert></i>
+                </button>
+            </li>
+            {{else}}
+            <li class="wsh-empty">{{ localize "WILDSHAPEHELPER.NoCandidates" }}</li>
+            {{/each}}
+        </ul>
+    </section>
+
+</div>

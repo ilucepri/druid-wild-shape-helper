@@ -48,8 +48,15 @@
 
     {{!-- Known forms --}}
     <h3 class="wsh-title">
-        {{ localize "WILDSHAPEHELPER.KnownForms" }}
-        <span>{{ forms.length }}{{#if maxKnown}} / {{ maxKnown }}{{/if}}</span>
+        <span>
+            {{ localize "WILDSHAPEHELPER.KnownForms" }}
+            <span class="wsh-count">{{ forms.length }}{{#if maxKnown}} / {{ maxKnown }}{{/if}}</span>
+        </span>
+        {{#if owner}}
+        <button type="button" class="wsh-manage" data-wsh-action="manage">
+            <i class="fas fa-list-check" inert></i> {{ localize "WILDSHAPEHELPER.ManageForms" }}
+        </button>
+        {{/if}}
     </h3>
     <ul class="wsh-forms">
         {{#each forms}}
@@ -65,7 +72,7 @@
             {{#unless allowed}}
             <i class="fas fa-lock" data-tooltip="WILDSHAPEHELPER.Locked"></i>
             {{/unless}}
-            {{#if (and removable @root.wildShape.owner)}}
+            {{#if @root.wildShape.owner}}
             <button type="button" class="unbutton wsh-remove" data-wsh-action="remove"
                     data-tooltip="WILDSHAPEHELPER.Remove" aria-label="{{ localize 'WILDSHAPEHELPER.Remove' }}">
                 <i class="fas fa-xmark" inert></i>
