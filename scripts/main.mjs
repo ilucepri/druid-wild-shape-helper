@@ -255,8 +255,9 @@ function prepareContext(sheet) {
   const favorites = getFavorites(original);
   const owner = actor.isOwner;
   const transformed = actor.isPolymorphed;
-  const hasUses = !uses?.max || (uses.value > 0);
-  const canTransform = owner && !transformed && hasUses;
+  const noUses = !!uses?.max && (uses.value < 1);
+  // Shown even without uses left: the button is disabled with a tooltip instead of disappearing.
+  const canTransform = owner && !transformed;
   const forms = getKnownForms(original).map(f => {
     const allowed = isFormAllowed(f, limits);
     return {
@@ -293,8 +294,7 @@ function prepareContext(sheet) {
     forms,
     maxKnown: getMaxKnown(original),
     uses: uses?.max ? { value: uses.value, max: uses.max } : null,
-    // 2014 druids can pick any eligible beast, not only their favorites.
-    canUse: (legacy || forms.some(f => f.allowed)) && hasUses,
+    noUses,
     beastGroups,
     beastCount: beastGroups?.reduce((n, g) => n + g.forms.length, 0) ?? 0,
     loading,
@@ -390,7 +390,6 @@ function bindBeastBrowser(tab, actor) {
 
 async function onAction(actor, action, uuid) {
   switch ( action ) {
-    case "transform": return wildShape(actor);
     case "transformInto": return wildShape(actor, uuid);
     case "add": return addBeast(getOriginalActor(actor), uuid);
     case "revert": return actor.revertOriginalForm();
@@ -403,10 +402,10 @@ async function onAction(actor, action, uuid) {
 
 /**
  * Spend a Wild Shape use and transform.
- * @param {Actor5e} actor        Druid (not transformed).
- * @param {string} [formUuid]    Form picked straight from the tab; otherwise the player is prompted.
+ * @param {Actor5e} actor   Druid (not transformed).
+ * @param {string} uuid     Form picked from the tab.
  */
-async function wildShape(actor, formUuid) {
+async function wildShape(actor, uuid) {
   if ( actor.isPolymorphed ) return;
   if ( !game.user.isGM && !(game.settings.get("dnd5e", "allowPolymorphing") && game.user.can("ACTOR_CREATE")) ) {
     return ui.notifications.warn("WILDSHAPEHELPER.Warning.NoPermission", { localize: true });
@@ -419,11 +418,9 @@ async function wildShape(actor, formUuid) {
 
   const legacy = isLegacy(actor);
   const limits = getFormLimits(actor);
-  const uuid = formUuid ?? await promptForm(actor, limits, legacy);
-  if ( !uuid ) return;
   const source = await fromUuid(uuid);
   if ( !source ) return ui.notifications.warn("WILDSHAPEHELPER.Warning.MissingForm", { localize: true });
-  if ( formUuid && !isFormAllowed(describeActor(source), limits) ) {
+  if ( !isFormAllowed(describeActor(source), limits) ) {
     return ui.notifications.warn("WILDSHAPEHELPER.Locked", { localize: true });
   }
 
@@ -437,28 +434,6 @@ async function wildShape(actor, formUuid) {
     })}</p>`
   });
   return actor.transformInto(source, settings, { renderSheet: true });
-}
-
-/**
- * Ask which form to take: favorites first, then known forms (2024) or every other eligible beast (2014).
- * @param {Actor5e} actor
- * @param {FormLimit[]} limits
- * @param {boolean} legacy
- * @returns {Promise<string|null>}
- */
-async function promptForm(actor, limits, legacy) {
-  const known = getKnownForms(actor).filter(f => isFormAllowed(f, limits));
-  if ( legacy ) {
-    // 2014: any beast the druid has seen, so offer every eligible beast after the favorites.
-    const knownNames = new Set(known.map(f => f.name.toLowerCase()));
-    const others = (await getBeastIndex()).filter(f => !knownNames.has(f.name.toLowerCase()) && isFormAllowed(f, limits));
-    return chooseForm([{ label: "Favorites", forms: known }, { label: "OtherBeasts", forms: others }]);
-  }
-  const favorites = getFavorites(actor);
-  return chooseForm([
-    { label: "Favorites", forms: known.filter(f => favorites.has(f.uuid)) },
-    { label: "KnownForms", forms: known.filter(f => !favorites.has(f.uuid)) }
-  ]);
 }
 
 /**
@@ -497,64 +472,6 @@ function getTransformSettings(item, legacy) {
     spellLists: [],
     tempFormula: "",
     minimumAC: ""
-  });
-}
-
-/**
- * Prompt the player to pick a form, listed in groups (favorites first). Group headings only show when
- * more than one group has forms, and long lists get a search box.
- * @param {{ label: string, forms: object[] }[]} groups  Groups in display order; label is a WILDSHAPEHELPER key.
- * @returns {Promise<string|null>}  UUID of the selected form.
- */
-async function chooseForm(groups) {
-  const esc = Handlebars.escapeExpression;
-  const localize = key => game.i18n.localize(`WILDSHAPEHELPER.${key}`);
-  const row = (f, checked) => `
-    <label class="wsh-choice" data-search="${esc(f.name.toLowerCase())}">
-      <input type="radio" name="form" value="${esc(f.uuid)}" ${checked ? "checked" : ""}>
-      <img src="${esc(f.img)}" alt="">
-      <span class="wsh-choice-name">${esc(f.name)}</span>
-      <span class="wsh-choice-cr">${localize("CR")} ${dnd5e.utils.formatCR(f.cr)}
-        ${f.fly ? '<i class="fas fa-feather" inert></i>' : ""}
-        ${f.swim ? '<i class="fas fa-water" inert></i>' : ""}</span>
-    </label>`;
-  const filled = groups.filter(g => g.forms.length);
-  const total = filled.reduce((n, g) => n + g.forms.length, 0);
-  let content = "";
-  if ( total > 8 ) content += `<input type="search" class="wsh-search" placeholder="${esc(localize("Search"))}"
-    aria-label="${esc(localize("Search"))}">`;
-  content += `<div class="wsh-choices">`;
-  let first = true;
-  for ( const group of filled ) {
-    if ( filled.length > 1 ) content += `<h4 class="wsh-choice-group">${esc(localize(group.label))}</h4>`;
-    for ( const f of group.forms ) {
-      content += row(f, first);
-      first = false;
-    }
-  }
-  content += "</div>";
-
-  return foundry.applications.api.DialogV2.prompt({
-    window: { title: "WILDSHAPEHELPER.ChooseForm", icon: "fas fa-paw" },
-    classes: ["wsh-dialog"],
-    position: { width: 420 },
-    content,
-    render: (event, dialog) => {
-      const element = dialog?.element ?? event?.target?.element;
-      const input = element?.querySelector(".wsh-search");
-      input?.addEventListener("input", () => {
-        const query = input.value.trim().toLowerCase();
-        for ( const choice of element.querySelectorAll(".wsh-choice") ) {
-          choice.hidden = !!query && !choice.dataset.search.includes(query);
-        }
-      });
-    },
-    ok: {
-      label: "WILDSHAPEHELPER.WildShape",
-      icon: "fas fa-paw",
-      callback: (event, button) => button.form.elements.form?.value ?? null
-    },
-    rejectClose: false
   });
 }
 

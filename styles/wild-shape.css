@@ -154,8 +154,13 @@
   border-left: 1px solid rgba(0, 0, 0, 0.18);
 }
 
-.dnd5e2 .wsh-paw:hover,
-.dnd5e2 .wsh-paw:focus-visible {
+.dnd5e2 .wsh-card-control:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.dnd5e2 .wsh-paw:not(:disabled):hover,
+.dnd5e2 .wsh-paw:not(:disabled):focus-visible {
   background: var(--dnd5e-color-green, #3e6a2e);
   color: #fff;
 }
@@ -204,43 +209,6 @@
   margin: 0;
   font-style: italic;
   opacity: 0.7;
-}
-
-/* Form picker dialog */
-.wsh-dialog .wsh-choices {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  max-height: 60vh;
-  overflow-y: auto;
-}
-
-.wsh-dialog .wsh-choice {
-  display: grid;
-  grid-template-columns: auto 40px 1fr auto;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.25rem 0.5rem;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.wsh-dialog .wsh-choice:has(input:checked) {
-  background: rgba(255, 255, 255, 0.12);
-  outline: 1px solid var(--color-warm-2, #c9593f);
-}
-
-.wsh-dialog .wsh-choice img {
-  width: 40px;
-  height: 40px;
-  border: none;
-  border-radius: 4px;
-  object-fit: cover;
-}
-
-.wsh-dialog .wsh-choice-cr {
-  opacity: 0.75;
-  white-space: nowrap;
 }
 
 .dnd5e2 .wsh-title .wsh-count {
@@ -321,22 +289,6 @@
   color: var(--dnd5e-color-maroon, #7b2a1d);
   font-weight: bold;
   opacity: 1;
-}
-
-.wsh-dialog .wsh-search {
-  margin-bottom: 0.5rem;
-}
-
-.wsh-dialog .wsh-choice[hidden] {
-  display: none;
-}
-
-.wsh-dialog .wsh-choice-group {
-  margin: 0.5rem 0 0.15rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-  font-size: var(--font-size-12, 12px);
-  text-transform: uppercase;
-  opacity: 0.75;
 }
 
 /* 2014 beast browser */

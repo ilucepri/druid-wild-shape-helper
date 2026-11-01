@@ -19,7 +19,9 @@
     <span class="wsh-card-controls">
         {{#if canTransform}}
         <button type="button" class="unbutton wsh-card-control wsh-paw" data-wsh-action="transformInto"
-                data-tooltip="WILDSHAPEHELPER.TransformInto" aria-label="{{ localize 'WILDSHAPEHELPER.TransformInto' }}">
+                aria-label="{{ localize 'WILDSHAPEHELPER.TransformInto' }}"
+                {{#if @root.wildShape.noUses}}disabled data-tooltip="WILDSHAPEHELPER.Warning.NoUses"
+                {{else}}data-tooltip="WILDSHAPEHELPER.TransformInto"{{/if}}>
             <i class="fas fa-paw" inert></i>
         </button>
         {{/if}}
@@ -88,18 +90,19 @@
             {{/if}}
         </div>
 
-        {{#if owner}}
-        {{#if transformed}}
+        {{!-- Forms are picked with the 🐾 button on each card; the header only offers to revert. --}}
+        {{#if (and owner transformed)}}
         <button type="button" class="wsh-button wsh-revert" data-wsh-action="revert">
             <i class="fas fa-rotate-left" inert></i> {{ localize "WILDSHAPEHELPER.Revert" }}
         </button>
-        {{else}}
-        <button type="button" class="wsh-button" data-wsh-action="transform" {{#unless canUse}}disabled{{/unless}}>
-            <i class="fas fa-paw" inert></i> {{ localize "WILDSHAPEHELPER.WildShape" }}
-        </button>
-        {{/if}}
         {{/if}}
     </header>
+
+    {{!-- 2014: one search for favorites and available beasts --}}
+    {{#if legacy}}{{#unless transformed}}
+    <input type="search" class="wsh-search wsh-beast-search" value="{{ search }}"
+           placeholder="{{ localize 'WILDSHAPEHELPER.Search' }}" aria-label="{{ localize 'WILDSHAPEHELPER.Search' }}">
+    {{/unless}}{{/if}}
 
     {{!-- Known forms (2024) or favorite forms (2014) --}}
     <h3 class="wsh-title">
@@ -107,10 +110,10 @@
             {{#if legacy}}{{ localize "WILDSHAPEHELPER.Favorites" }}{{else}}{{ localize "WILDSHAPEHELPER.KnownForms" }}{{/if}}
             <span class="wsh-count">{{ forms.length }}{{#if maxKnown}} / {{ maxKnown }}{{/if}}</span>
         </span>
-        {{#if owner}}
+        {{!-- 2024 forms are learned from this window; 2014 favorites come from the list below. --}}
+        {{#if (and owner (not legacy))}}
         <button type="button" class="wsh-manage" data-wsh-action="manage">
-            <i class="fas fa-list-check" inert></i>
-            {{#if legacy}}{{ localize "WILDSHAPEHELPER.ManageFavorites" }}{{else}}{{ localize "WILDSHAPEHELPER.ManageForms" }}{{/if}}
+            <i class="fas fa-list-check" inert></i> {{ localize "WILDSHAPEHELPER.ManageForms" }}
         </button>
         {{/if}}
     </h3>
@@ -132,8 +135,6 @@
             <span class="wsh-count">{{ beastCount }}</span>
         </span>
     </h3>
-    <input type="search" class="wsh-search wsh-beast-search" value="{{ search }}"
-           placeholder="{{ localize 'WILDSHAPEHELPER.Search' }}" aria-label="{{ localize 'WILDSHAPEHELPER.Search' }}">
     {{#if loading}}
     <p class="wsh-hint"><i class="fas fa-spinner fa-spin" inert></i> {{ localize "WILDSHAPEHELPER.Loading" }}</p>
     {{/if}}
