@@ -14,6 +14,7 @@ Foundry VTT module for the dnd5e system (2024 rules). It adds a **Wild Shape** t
 Druids whose Wild Shape feature (or druid class) is marked as 2014 rules, or worlds set to the legacy rules, get a 2014 mode:
 
 - No known forms: the **Wild Shape** picker lists every eligible Beast in your compendiums, with a search box. The tab keeps a list of **favorite forms** (no limit) that appear first.
+- The tab also lists every Beast allowed at your level, in collapsible groups by CR, with a search box. Each card has a 🐾 button to Wild Shape straight into it and a ★ button to add it to your favorites.
 - Limits follow the 2014 Beast Shapes table, including "no swimming speed" before 4th level, and Circle of the Moon (CR 1 from 2nd level, druid level ÷ 3 from 6th).
 - You take the beast's hit points: no kept HP, no temporary HP, no Moon minimum AC and no spells in beast form.
 

@@ -39,6 +39,9 @@
     "Swims": "Tiene velocidad de nado",
     "LegacyHint": "Reglas 2014: cualquier bestia que hayas visto, y usas los puntos de golpe de la bestia.",
     "Favorite": "Marcar como favorita",
-    "Unfavorite": "Quitar de favoritas"
+    "Unfavorite": "Quitar de favoritas",
+    "TransformInto": "Transformarte en esta forma",
+    "Loading": "Cargando bestias…",
+    "NoResults": "Ninguna bestia coincide con la búsqueda."
   }
 }

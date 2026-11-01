@@ -1,3 +1,51 @@
+{{#*inline "wshCard"}}
+<li class="wsh-form wsh-searchable {{#unless allowed}}wsh-locked{{/unless}} {{#if favorite}}wsh-favorite{{/if}}"
+    data-uuid="{{ uuid }}" data-search="{{ search }}">
+    {{!-- The whole card opens the creature's sheet --}}
+    <button type="button" class="unbutton wsh-card" data-wsh-action="open"
+            {{#unless allowed}}data-tooltip="WILDSHAPEHELPER.Locked"{{/unless}}>
+        <img src="{{ img }}" alt="" loading="lazy">
+        <span class="wsh-form-info">
+            <span class="wsh-form-name">{{ name }}</span>
+            <span class="wsh-form-cr">
+                {{ localize "WILDSHAPEHELPER.CR" }} {{ crLabel }}
+                {{#if fly}}<i class="fas fa-feather" inert></i>{{/if}}
+                {{#if swim}}<i class="fas fa-water" inert></i>{{/if}}
+            </span>
+        </span>
+        {{#unless allowed}}<i class="fas fa-lock wsh-lock" inert></i>{{/unless}}
+    </button>
+    {{#if (or canTransform canFavorite canAdd canRemove)}}
+    <span class="wsh-card-controls">
+        {{#if canTransform}}
+        <button type="button" class="unbutton wsh-card-control wsh-paw" data-wsh-action="transformInto"
+                data-tooltip="WILDSHAPEHELPER.TransformInto" aria-label="{{ localize 'WILDSHAPEHELPER.TransformInto' }}">
+            <i class="fas fa-paw" inert></i>
+        </button>
+        {{/if}}
+        {{#if canFavorite}}
+        <button type="button" class="unbutton wsh-card-control wsh-star" data-wsh-action="favorite"
+                data-tooltip="{{#if favorite}}WILDSHAPEHELPER.Unfavorite{{else}}WILDSHAPEHELPER.Favorite{{/if}}"
+                aria-label="{{ localize 'WILDSHAPEHELPER.Favorite' }}" aria-pressed="{{#if favorite}}true{{else}}false{{/if}}">
+            <i class="{{#if favorite}}fas{{else}}far{{/if}} fa-star" inert></i>
+        </button>
+        {{/if}}
+        {{#if canAdd}}
+        <button type="button" class="unbutton wsh-card-control wsh-star" data-wsh-action="add"
+                data-tooltip="WILDSHAPEHELPER.Favorite" aria-label="{{ localize 'WILDSHAPEHELPER.Favorite' }}">
+            <i class="far fa-star" inert></i>
+        </button>
+        {{/if}}
+        {{#if canRemove}}
+        <button type="button" class="unbutton wsh-card-control wsh-remove" data-wsh-action="remove"
+                data-tooltip="WILDSHAPEHELPER.Remove" aria-label="{{ localize 'WILDSHAPEHELPER.Remove' }}">
+            <i class="fas fa-xmark" inert></i>
+        </button>
+        {{/if}}
+    </span>
+    {{/if}}
+</li>
+{{/inline}}
 <section class="tab wsh-tab {{ tab.cssClass }}" data-tab="{{ tab.id }}" data-group="{{ tab.group }}">
     {{#with wildShape}}
 
@@ -68,43 +116,48 @@
     </h3>
     <ul class="wsh-forms">
         {{#each forms}}
-        <li class="wsh-form {{#unless allowed}}wsh-locked{{/unless}} {{#if favorite}}wsh-favorite{{/if}}" data-uuid="{{ uuid }}">
-            {{!-- The whole card opens the creature's sheet --}}
-            <button type="button" class="unbutton wsh-card" data-wsh-action="open"
-                    {{#unless allowed}}data-tooltip="WILDSHAPEHELPER.Locked"{{/unless}}>
-                <img src="{{ img }}" alt="">
-                <span class="wsh-form-info">
-                    <span class="wsh-form-name">{{ name }}</span>
-                    <span class="wsh-form-cr">
-                        {{ localize "WILDSHAPEHELPER.CR" }} {{ crLabel }}
-                        {{#if fly}}<i class="fas fa-feather" inert></i>{{/if}}
-                        {{#if swim}}<i class="fas fa-water" inert></i>{{/if}}
-                    </span>
-                </span>
-                {{#unless allowed}}<i class="fas fa-lock wsh-lock" inert></i>{{/unless}}
-            </button>
-            {{#if @root.wildShape.owner}}
-            <span class="wsh-card-controls">
-                {{#unless @root.wildShape.legacy}}
-                <button type="button" class="unbutton wsh-card-control wsh-star" data-wsh-action="favorite"
-                        data-tooltip="{{#if favorite}}WILDSHAPEHELPER.Unfavorite{{else}}WILDSHAPEHELPER.Favorite{{/if}}"
-                        aria-label="{{ localize 'WILDSHAPEHELPER.Favorite' }}" aria-pressed="{{#if favorite}}true{{else}}false{{/if}}">
-                    <i class="{{#if favorite}}fas{{else}}far{{/if}} fa-star" inert></i>
-                </button>
-                {{/unless}}
-                <button type="button" class="unbutton wsh-card-control wsh-remove" data-wsh-action="remove"
-                        data-tooltip="WILDSHAPEHELPER.Remove" aria-label="{{ localize 'WILDSHAPEHELPER.Remove' }}">
-                    <i class="fas fa-xmark" inert></i>
-                </button>
-            </span>
-            {{/if}}
-        </li>
+        {{> wshCard }}
         {{else}}
         <li class="wsh-empty">
             {{#if @root.wildShape.legacy}}{{ localize "WILDSHAPEHELPER.NoFavorites" }}{{else}}{{ localize "WILDSHAPEHELPER.NoForms" }}{{/if}}
         </li>
         {{/each}}
     </ul>
+
+    {{!-- 2014: every beast allowed at this level, collapsible by CR --}}
+    {{#if legacy}}{{#unless transformed}}
+    <h3 class="wsh-title">
+        <span>
+            {{ localize "WILDSHAPEHELPER.AvailableForms" }}
+            <span class="wsh-count">{{ beastCount }}</span>
+        </span>
+    </h3>
+    <input type="search" class="wsh-search wsh-beast-search" value="{{ search }}"
+           placeholder="{{ localize 'WILDSHAPEHELPER.Search' }}" aria-label="{{ localize 'WILDSHAPEHELPER.Search' }}">
+    {{#if loading}}
+    <p class="wsh-hint"><i class="fas fa-spinner fa-spin" inert></i> {{ localize "WILDSHAPEHELPER.Loading" }}</p>
+    {{/if}}
+    <div class="wsh-cr-groups">
+        {{#each beastGroups}}
+        <details class="wsh-cr-group" data-cr="{{ cr }}" {{#if open}}open{{/if}}>
+            <summary>
+                <i class="fas fa-chevron-right wsh-chevron" inert></i>
+                <span class="wsh-cr-label">{{ localize "WILDSHAPEHELPER.CR" }} {{ crLabel }}</span>
+                <span class="wsh-count">{{ forms.length }}</span>
+            </summary>
+            <ul class="wsh-forms">
+                {{#each forms}}
+                {{> wshCard }}
+                {{/each}}
+            </ul>
+        </details>
+        {{else}}
+        {{#unless loading}}<p class="wsh-empty">{{ localize "WILDSHAPEHELPER.NoCandidates" }}</p>{{/unless}}
+        {{/each}}
+        <p class="wsh-empty wsh-no-results" hidden>{{ localize "WILDSHAPEHELPER.NoResults" }}</p>
+    </div>
+    {{/unless}}{{/if}}
+
     {{#if owner}}
     <p class="wsh-hint">{{ localize "WILDSHAPEHELPER.DropHint" }}</p>
     {{/if}}

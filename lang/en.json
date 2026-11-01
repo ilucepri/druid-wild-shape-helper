@@ -39,6 +39,9 @@
     "Swims": "Has a swim speed",
     "LegacyHint": "2014 rules: any beast you have seen, and you take the beast's hit points.",
     "Favorite": "Mark as favorite",
-    "Unfavorite": "Remove from favorites"
+    "Unfavorite": "Remove from favorites",
+    "TransformInto": "Wild Shape into this form",
+    "Loading": "Loading beasts…",
+    "NoResults": "No beasts match your search."
   }
 }
