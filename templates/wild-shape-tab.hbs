@@ -68,24 +68,35 @@
     </h3>
     <ul class="wsh-forms">
         {{#each forms}}
-        <li class="wsh-form {{#unless allowed}}wsh-locked{{/unless}}" data-uuid="{{ uuid }}">
-            <img src="{{ img }}" alt="">
-            <div class="wsh-form-info">
-                <a class="wsh-form-name" data-wsh-action="open">{{ name }}</a>
-                <span class="wsh-form-cr">
-                    {{ localize "WILDSHAPEHELPER.CR" }} {{ crLabel }}
-                    {{#if fly}}<i class="fas fa-feather" data-tooltip="WILDSHAPEHELPER.Flies" inert></i>{{/if}}
-                    {{#if swim}}<i class="fas fa-water" data-tooltip="WILDSHAPEHELPER.Swims" inert></i>{{/if}}
+        <li class="wsh-form {{#unless allowed}}wsh-locked{{/unless}} {{#if favorite}}wsh-favorite{{/if}}" data-uuid="{{ uuid }}">
+            {{!-- The whole card opens the creature's sheet --}}
+            <button type="button" class="unbutton wsh-card" data-wsh-action="open"
+                    {{#unless allowed}}data-tooltip="WILDSHAPEHELPER.Locked"{{/unless}}>
+                <img src="{{ img }}" alt="">
+                <span class="wsh-form-info">
+                    <span class="wsh-form-name">{{ name }}</span>
+                    <span class="wsh-form-cr">
+                        {{ localize "WILDSHAPEHELPER.CR" }} {{ crLabel }}
+                        {{#if fly}}<i class="fas fa-feather" inert></i>{{/if}}
+                        {{#if swim}}<i class="fas fa-water" inert></i>{{/if}}
+                    </span>
                 </span>
-            </div>
-            {{#unless allowed}}
-            <i class="fas fa-lock" data-tooltip="WILDSHAPEHELPER.Locked"></i>
-            {{/unless}}
-            {{#if @root.wildShape.owner}}
-            <button type="button" class="unbutton wsh-remove" data-wsh-action="remove"
-                    data-tooltip="WILDSHAPEHELPER.Remove" aria-label="{{ localize 'WILDSHAPEHELPER.Remove' }}">
-                <i class="fas fa-xmark" inert></i>
+                {{#unless allowed}}<i class="fas fa-lock wsh-lock" inert></i>{{/unless}}
             </button>
+            {{#if @root.wildShape.owner}}
+            <span class="wsh-card-controls">
+                {{#unless @root.wildShape.legacy}}
+                <button type="button" class="unbutton wsh-card-control wsh-star" data-wsh-action="favorite"
+                        data-tooltip="{{#if favorite}}WILDSHAPEHELPER.Unfavorite{{else}}WILDSHAPEHELPER.Favorite{{/if}}"
+                        aria-label="{{ localize 'WILDSHAPEHELPER.Favorite' }}" aria-pressed="{{#if favorite}}true{{else}}false{{/if}}">
+                    <i class="{{#if favorite}}fas{{else}}far{{/if}} fa-star" inert></i>
+                </button>
+                {{/unless}}
+                <button type="button" class="unbutton wsh-card-control wsh-remove" data-wsh-action="remove"
+                        data-tooltip="WILDSHAPEHELPER.Remove" aria-label="{{ localize 'WILDSHAPEHELPER.Remove' }}">
+                    <i class="fas fa-xmark" inert></i>
+                </button>
+            </span>
             {{/if}}
         </li>
         {{else}}

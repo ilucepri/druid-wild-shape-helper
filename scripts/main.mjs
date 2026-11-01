@@ -232,12 +232,14 @@ function prepareContext(actor) {
   const item = getWildShapeItem(original);
   const limits = getFormLimits(original);
   const uses = item?.system.uses;
+  const legacy = isLegacy(original);
+  const favorites = getFavorites(original);
   const forms = getKnownForms(original).map(f => ({
     ...f,
     crLabel: dnd5e.utils.formatCR(f.cr),
-    allowed: isFormAllowed(f, limits)
-  }));
-  const legacy = isLegacy(original);
+    allowed: isFormAllowed(f, limits),
+    favorite: !legacy && favorites.has(f.uuid)
+  })).sort((a, b) => b.favorite - a.favorite);
   return {
     owner: actor.isOwner,
     transformed: actor.isPolymorphed,
@@ -263,6 +265,7 @@ async function onAction(actor, action, uuid) {
     case "revert": return actor.revertOriginalForm();
     case "open": return (await fromUuid(uuid))?.sheet.render(true);
     case "remove": return removeForm(getOriginalActor(actor), uuid);
+    case "favorite": return toggleFavorite(getOriginalActor(actor), uuid);
     case "manage": return FormsManager.open(getOriginalActor(actor));
   }
 }
@@ -280,14 +283,21 @@ async function wildShape(actor) {
 
   const legacy = isLegacy(actor);
   const limits = getFormLimits(actor);
-  const favorites = getKnownForms(actor).filter(f => isFormAllowed(f, limits));
-  let others = [];
+  const known = getKnownForms(actor).filter(f => isFormAllowed(f, limits));
+  let groups;
   if ( legacy ) {
     // 2014: any beast the druid has seen, so offer every eligible beast after the favorites.
-    const favoriteNames = new Set(favorites.map(f => f.name.toLowerCase()));
-    others = (await getBeastIndex()).filter(f => !favoriteNames.has(f.name.toLowerCase()) && isFormAllowed(f, limits));
+    const knownNames = new Set(known.map(f => f.name.toLowerCase()));
+    const others = (await getBeastIndex()).filter(f => !knownNames.has(f.name.toLowerCase()) && isFormAllowed(f, limits));
+    groups = [{ label: "Favorites", forms: known }, { label: "OtherBeasts", forms: others }];
+  } else {
+    const favorites = getFavorites(actor);
+    groups = [
+      { label: "Favorites", forms: known.filter(f => favorites.has(f.uuid)) },
+      { label: "KnownForms", forms: known.filter(f => !favorites.has(f.uuid)) }
+    ];
   }
-  const uuid = await chooseForm(favorites, others);
+  const uuid = await chooseForm(groups);
   if ( !uuid ) return;
   const source = await fromUuid(uuid);
   if ( !source ) return ui.notifications.warn("WILDSHAPEHELPER.Warning.MissingForm", { localize: true });
@@ -328,12 +338,12 @@ function getTransformSettings(item, legacy) {
 }
 
 /**
- * Prompt the player to pick a form: favorites / known forms first, then any other eligible beast.
- * @param {object[]} forms     Known or favorite forms.
- * @param {object[]} [others]  Other eligible beasts (2014 rules).
+ * Prompt the player to pick a form, listed in groups (favorites first). Group headings only show when
+ * more than one group has forms, and long lists get a search box.
+ * @param {{ label: string, forms: object[] }[]} groups  Groups in display order; label is a WILDSHAPEHELPER key.
  * @returns {Promise<string|null>}  UUID of the selected form.
  */
-async function chooseForm(forms, others=[]) {
+async function chooseForm(groups) {
   const esc = Handlebars.escapeExpression;
   const localize = key => game.i18n.localize(`WILDSHAPEHELPER.${key}`);
   const row = (f, checked) => `
@@ -345,14 +355,20 @@ async function chooseForm(forms, others=[]) {
         ${f.fly ? '<i class="fas fa-feather" inert></i>' : ""}
         ${f.swim ? '<i class="fas fa-water" inert></i>' : ""}</span>
     </label>`;
+  const filled = groups.filter(g => g.forms.length);
+  const total = filled.reduce((n, g) => n + g.forms.length, 0);
   let content = "";
-  if ( others.length ) content += `<input type="search" class="wsh-search" placeholder="${esc(localize("Search"))}"
+  if ( total > 8 ) content += `<input type="search" class="wsh-search" placeholder="${esc(localize("Search"))}"
     aria-label="${esc(localize("Search"))}">`;
   content += `<div class="wsh-choices">`;
-  if ( forms.length && others.length ) content += `<h4 class="wsh-choice-group">${esc(localize("Favorites"))}</h4>`;
-  content += forms.map((f, i) => row(f, i === 0)).join("");
-  if ( forms.length && others.length ) content += `<h4 class="wsh-choice-group">${esc(localize("OtherBeasts"))}</h4>`;
-  content += others.map((f, i) => row(f, !forms.length && (i === 0))).join("");
+  let first = true;
+  for ( const group of filled ) {
+    if ( filled.length > 1 ) content += `<h4 class="wsh-choice-group">${esc(localize(group.label))}</h4>`;
+    for ( const f of group.forms ) {
+      content += row(f, first);
+      first = false;
+    }
+  }
   content += "</div>";
 
   return foundry.applications.api.DialogV2.prompt({
@@ -415,7 +431,26 @@ async function addForm(actor, form) {
 async function removeForm(actor, uuid) {
   const forms = (actor.getFlag(MODULE_ID, "forms") ?? []).filter(f => f.uuid !== uuid);
   const removed = new Set(actor.getFlag(MODULE_ID, "removed") ?? []).add(uuid);
-  await actor.update({ [`flags.${MODULE_ID}`]: { forms, removed: Array.from(removed) } });
+  const favorites = getFavorites(actor);
+  favorites.delete(uuid);
+  await actor.update({ [`flags.${MODULE_ID}`]: {
+    forms, removed: Array.from(removed), favorites: Array.from(favorites)
+  } });
+}
+
+/**
+ * Known forms marked as favorites (2024 rules), listed first in the tab and the Wild Shape picker.
+ * @param {Actor5e} actor  Original actor.
+ * @returns {Set<string>}  Form UUIDs.
+ */
+function getFavorites(actor) {
+  return new Set(actor.getFlag(MODULE_ID, "favorites") ?? []);
+}
+
+async function toggleFavorite(actor, uuid) {
+  const favorites = getFavorites(actor);
+  if ( !favorites.delete(uuid) ) favorites.add(uuid);
+  await actor.setFlag(MODULE_ID, "favorites", Array.from(favorites));
 }
 
 /* -------------------------------------------- */

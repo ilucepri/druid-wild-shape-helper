@@ -6,6 +6,7 @@ Foundry VTT module for the dnd5e system (2024 rules). It adds a **Wild Shape** t
 - Shows the remaining Wild Shape uses, the maximum CR and whether flying forms are allowed (read from the Wild Shape / Circle Forms features).
 - **Wild Shape** button: pick a known form, spend one use and transform using the dnd5e `wildshape` preset.
 - While transformed, the button becomes **Revert form**.
+- Click a form card to open the creature's sheet. The attached buttons mark it as a favorite (★, listed first in the tab and the picker) or remove it (✕).
 - **Choose forms** window: remove known forms and learn new ones from every Beast in your compendiums that fits your level's CR and flying limits, up to your known-forms maximum (4 / 6 / 8).
 
 ## 2014 rules

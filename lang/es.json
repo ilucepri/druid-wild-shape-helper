@@ -37,6 +37,8 @@
     "OtherBeasts": "Otras bestias",
     "Swimming": "Formas nadadoras",
     "Swims": "Tiene velocidad de nado",
-    "LegacyHint": "Reglas 2014: cualquier bestia que hayas visto, y usas los puntos de golpe de la bestia."
+    "LegacyHint": "Reglas 2014: cualquier bestia que hayas visto, y usas los puntos de golpe de la bestia.",
+    "Favorite": "Marcar como favorita",
+    "Unfavorite": "Quitar de favoritas"
   }
 }
