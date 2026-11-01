@@ -65,6 +65,22 @@ function hasWildShape(actor) {
 }
 
 /**
+ * Whether this druid plays by the 2014 rules: no known forms, and the beast's hit points replace the druid's.
+ * Decided by the Wild Shape feature or druid class source, falling back to the world's rules setting.
+ * @param {Actor5e} actor  Original actor.
+ * @returns {boolean}
+ */
+function isLegacy(actor) {
+  const rules = getWildShapeItem(actor)?.system.source?.rules || actor.classes?.druid?.system.source?.rules;
+  if ( rules ) return rules === "2014";
+  return game.settings.get("dnd5e", "rulesVersion") === "legacy";
+}
+
+function isMoonDruid(actor) {
+  return actor.itemTypes.subclass.some(i => (i.system.classIdentifier === "druid") && i.identifier.includes("moon"));
+}
+
+/**
  * Known forms chosen in the character builder plus forms added here, minus the ones removed here.
  * @param {Actor5e} actor  Original actor.
  * @returns {object[]}
@@ -85,10 +101,12 @@ function sortForms(forms) {
 
 /**
  * How many forms the druid can know: the class scale value if there is one, otherwise the 2024 table.
+ * 2014 druids have no known forms, so their favorites have no limit.
  * @param {Actor5e} actor  Original actor.
  * @returns {number|null}
  */
 function getMaxKnown(actor) {
+  if ( isLegacy(actor) ) return null;
   const scale = actor.system.scale?.druid?.["known-forms"]?.value;
   if ( scale ) return scale;
   const level = actor.classes?.druid?.system.levels ?? 0;
@@ -104,7 +122,10 @@ let beastIndex;
  */
 async function getBeastIndex() {
   if ( beastIndex ) return beastIndex;
-  const fields = ["img", "system.details.cr", "system.details.type.value", "system.attributes.movement.fly"];
+  const fields = [
+    "img", "system.details.cr", "system.details.type.value",
+    "system.attributes.movement.fly", "system.attributes.movement.swim"
+  ];
   const packs = game.packs.filter(p => (p.documentName === "Actor") && p.visible)
     .sort((a, b) => (a.metadata.packageType === "system") - (b.metadata.packageType === "system"));
   const byName = new Map();
@@ -119,6 +140,7 @@ async function getBeastIndex() {
         img: entry.img,
         cr: get("system.details.cr") ?? 0,
         fly: (get("system.attributes.movement.fly") ?? 0) > 0,
+        swim: (get("system.attributes.movement.swim") ?? 0) > 0,
         sourceLabel: pack.metadata.label
       });
     }
@@ -127,31 +149,82 @@ async function getBeastIndex() {
 }
 
 /**
- * Transformation limits from the transform activities on Wild Shape / Circle Forms (CR cap and flying).
+ * @typedef {object} FormLimit
+ * @property {number} cr      Highest challenge rating allowed.
+ * @property {boolean} fly    Whether forms with a fly speed are allowed.
+ * @property {boolean} swim   Whether forms with a swim speed are allowed.
+ */
+
+/**
+ * Transformation limits from the transform activities on Wild Shape / Circle Forms. Features without
+ * transform profiles (hand-made or imported ones) fall back to the Beast Shapes tables.
  * @param {Actor5e} actor  Original actor.
- * @returns {{ cr: number, fly: boolean }[]}
+ * @returns {FormLimit[]}
  */
 function getFormLimits(actor) {
   const limits = [];
+  let circleProfiles = false;
   for ( const item of actor.items ) {
     if ( !FORM_ITEMS.has(item.identifier) ) continue;
     for ( const activity of item.system.activities?.getByType("transform") ?? [] ) {
       const rollData = activity.getRollData({ deterministic: true });
       for ( const profile of activity.availableProfiles ) {
         if ( profile.types.size && !profile.types.has("beast") ) continue;
+        if ( item.identifier === "circle-forms" ) circleProfiles = true;
         limits.push({
           cr: profile.cr === "" ? Infinity : dnd5e.utils.simplifyBonus(profile.cr, rollData),
-          fly: !profile.movement.has("fly")
+          fly: !profile.movement.has("fly"),
+          swim: !profile.movement.has("swim")
         });
       }
     }
   }
+  const [base, moon] = getTableLimits(actor);
+  if ( !limits.length && base ) limits.push(base);
+  if ( moon && !circleProfiles ) limits.push(moon);
   return limits;
+}
+
+/**
+ * Beast Shapes table for the druid's level and rules, plus the Circle of the Moon row when it applies.
+ * @param {Actor5e} actor  Original actor.
+ * @returns {FormLimit[]}  Base limit and, for Moon druids, the Circle Forms limit.
+ */
+function getTableLimits(actor) {
+  const level = actor.classes?.druid?.system.levels ?? 0;
+  if ( level < 2 ) return [];
+  const legacy = isLegacy(actor);
+  let base;
+  if ( level >= 8 ) base = { cr: 1, fly: true, swim: true };
+  else if ( level >= 4 ) base = { cr: 0.5, fly: false, swim: true };
+  else base = { cr: 0.25, fly: false, swim: !legacy };
+  if ( !isMoonDruid(actor) ) return [base];
+  // 2014 Circle Forms: CR 1 from 2nd level, druid level / 3 from 6th. 2024: druid level / 3 from 3rd.
+  // Both keep the movement limits of the base table.
+  const moonCR = legacy ? (level >= 6 ? Math.floor(level / 3) : 1) : Math.floor(level / 3);
+  return [base, { ...base, cr: Math.max(base.cr, moonCR) }];
 }
 
 function isFormAllowed(form, limits) {
   if ( !limits.length ) return true;
-  return limits.some(l => (form.cr <= l.cr) && (!form.fly || l.fly));
+  return limits.some(l => (form.cr <= l.cr) && (!form.fly || l.fly) && (!form.swim || l.swim));
+}
+
+/**
+ * Summary of the limits for display: best CR overall and best CR for flying / swimming forms.
+ * @param {FormLimit[]} limits
+ * @returns {{ maxCR: string|null, maxFlyCR: string|null, maxSwimCR: string|null }}
+ */
+function describeLimits(limits) {
+  const best = list => {
+    const cr = Math.max(...list.map(l => l.cr));
+    return Number.isFinite(cr) ? dnd5e.utils.formatCR(cr) : null;
+  };
+  return {
+    maxCR: best(limits),
+    maxFlyCR: best(limits.filter(l => l.fly)),
+    maxSwimCR: best(limits.filter(l => l.swim))
+  };
 }
 
 function prepareContext(actor) {
@@ -164,19 +237,19 @@ function prepareContext(actor) {
     crLabel: dnd5e.utils.formatCR(f.cr),
     allowed: isFormAllowed(f, limits)
   }));
-  const maxCR = Math.max(...limits.map(l => l.cr));
-  const maxFlyCR = Math.max(...limits.filter(l => l.fly).map(l => l.cr));
+  const legacy = isLegacy(original);
   return {
     owner: actor.isOwner,
     transformed: actor.isPolymorphed,
     currentForm: actor.isPolymorphed ? actor.name : null,
     currentImg: actor.img,
+    legacy,
     forms,
     maxKnown: getMaxKnown(original),
     uses: uses?.max ? { value: uses.value, max: uses.max } : null,
-    canUse: forms.some(f => f.allowed) && (!uses?.max || (uses.value > 0)),
-    maxCR: Number.isFinite(maxCR) ? dnd5e.utils.formatCR(maxCR) : null,
-    maxFlyCR: Number.isFinite(maxFlyCR) ? dnd5e.utils.formatCR(maxFlyCR) : null
+    // 2014 druids can pick any eligible beast, not only their favorites.
+    canUse: (legacy || forms.some(f => f.allowed)) && (!uses?.max || (uses.value > 0)),
+    ...describeLimits(limits)
   };
 }
 
@@ -205,17 +278,21 @@ async function wildShape(actor) {
     return ui.notifications.warn("WILDSHAPEHELPER.Warning.NoUses", { localize: true });
   }
 
+  const legacy = isLegacy(actor);
   const limits = getFormLimits(actor);
-  const forms = getKnownForms(actor).filter(f => isFormAllowed(f, limits));
-  const uuid = await chooseForm(forms);
+  const favorites = getKnownForms(actor).filter(f => isFormAllowed(f, limits));
+  let others = [];
+  if ( legacy ) {
+    // 2014: any beast the druid has seen, so offer every eligible beast after the favorites.
+    const favoriteNames = new Set(favorites.map(f => f.name.toLowerCase()));
+    others = (await getBeastIndex()).filter(f => !favoriteNames.has(f.name.toLowerCase()) && isFormAllowed(f, limits));
+  }
+  const uuid = await chooseForm(favorites, others);
   if ( !uuid ) return;
   const source = await fromUuid(uuid);
   if ( !source ) return ui.notifications.warn("WILDSHAPEHELPER.Warning.MissingForm", { localize: true });
 
-  const settings = item.system.activities.getByType("transform")[0]?.settings
-    ?? new dnd5e.dataModels.settings.TransformationSetting({
-      ...CONFIG.DND5E.transformation.presets.wildshape.settings, preset: "wildshape"
-    });
+  const settings = getTransformSettings(item, legacy);
 
   if ( uses.max ) await item.update({ "system.uses.spent": uses.spent + 1 });
   await ChatMessage.implementation.create({
@@ -228,24 +305,71 @@ async function wildShape(actor) {
 }
 
 /**
- * Prompt the player to pick one of the known forms.
- * @param {object[]} forms
+ * Transformation settings from the Wild Shape feature, or the system's wildshape preset.
+ * The preset follows the 2024 rules, so for 2014 druids the beast's hit points replace the druid's:
+ * no kept HP, no temporary HP, no Moon minimum AC and no spellcasting in beast form.
+ * @param {Item5e} item       Wild Shape feature.
+ * @param {boolean} legacy    Use the 2014 rules.
+ * @returns {TransformationSetting}
+ */
+function getTransformSettings(item, legacy) {
+  const { TransformationSetting } = dnd5e.dataModels.settings;
+  const settings = item.system.activities.getByType("transform")[0]?.settings
+    ?? new TransformationSetting({ ...CONFIG.DND5E.transformation.presets.wildshape.settings, preset: "wildshape" });
+  if ( !legacy ) return settings;
+  const data = settings.toObject();
+  return new TransformationSetting({
+    ...data,
+    keep: data.keep.filter(k => !["hp", "tempHP", "spells"].includes(k)),
+    spellLists: [],
+    tempFormula: "",
+    minimumAC: ""
+  });
+}
+
+/**
+ * Prompt the player to pick a form: favorites / known forms first, then any other eligible beast.
+ * @param {object[]} forms     Known or favorite forms.
+ * @param {object[]} [others]  Other eligible beasts (2014 rules).
  * @returns {Promise<string|null>}  UUID of the selected form.
  */
-async function chooseForm(forms) {
+async function chooseForm(forms, others=[]) {
   const esc = Handlebars.escapeExpression;
-  const content = `<div class="wsh-choices">${forms.map((f, i) => `
-    <label class="wsh-choice">
-      <input type="radio" name="form" value="${esc(f.uuid)}" ${i === 0 ? "checked" : ""}>
+  const localize = key => game.i18n.localize(`WILDSHAPEHELPER.${key}`);
+  const row = (f, checked) => `
+    <label class="wsh-choice" data-search="${esc(f.name.toLowerCase())}">
+      <input type="radio" name="form" value="${esc(f.uuid)}" ${checked ? "checked" : ""}>
       <img src="${esc(f.img)}" alt="">
       <span class="wsh-choice-name">${esc(f.name)}</span>
-      <span class="wsh-choice-cr">${game.i18n.localize("WILDSHAPEHELPER.CR")} ${dnd5e.utils.formatCR(f.cr)}
-        ${f.fly ? '<i class="fas fa-feather" inert></i>' : ""}</span>
-    </label>`).join("")}</div>`;
+      <span class="wsh-choice-cr">${localize("CR")} ${dnd5e.utils.formatCR(f.cr)}
+        ${f.fly ? '<i class="fas fa-feather" inert></i>' : ""}
+        ${f.swim ? '<i class="fas fa-water" inert></i>' : ""}</span>
+    </label>`;
+  let content = "";
+  if ( others.length ) content += `<input type="search" class="wsh-search" placeholder="${esc(localize("Search"))}"
+    aria-label="${esc(localize("Search"))}">`;
+  content += `<div class="wsh-choices">`;
+  if ( forms.length && others.length ) content += `<h4 class="wsh-choice-group">${esc(localize("Favorites"))}</h4>`;
+  content += forms.map((f, i) => row(f, i === 0)).join("");
+  if ( forms.length && others.length ) content += `<h4 class="wsh-choice-group">${esc(localize("OtherBeasts"))}</h4>`;
+  content += others.map((f, i) => row(f, !forms.length && (i === 0))).join("");
+  content += "</div>";
+
   return foundry.applications.api.DialogV2.prompt({
     window: { title: "WILDSHAPEHELPER.ChooseForm", icon: "fas fa-paw" },
     classes: ["wsh-dialog"],
+    position: { width: 420 },
     content,
+    render: (event, dialog) => {
+      const element = dialog?.element ?? event?.target?.element;
+      const input = element?.querySelector(".wsh-search");
+      input?.addEventListener("input", () => {
+        const query = input.value.trim().toLowerCase();
+        for ( const choice of element.querySelectorAll(".wsh-choice") ) {
+          choice.hidden = !!query && !choice.dataset.search.includes(query);
+        }
+      });
+    },
     ok: {
       label: "WILDSHAPEHELPER.WildShape",
       icon: "fas fa-paw",
@@ -272,7 +396,8 @@ async function onDrop(event, actor) {
     name: source.name,
     img: source.img,
     cr: source.system.details.cr ?? 0,
-    fly: (source.system.attributes.movement.fly ?? 0) > 0
+    fly: (source.system.attributes.movement.fly ?? 0) > 0,
+    swim: (source.system.attributes.movement.swim ?? 0) > 0
   });
   if ( original !== actor ) actor.sheet.render();
 }
@@ -280,7 +405,7 @@ async function onDrop(event, actor) {
 async function addForm(actor, form) {
   const forms = (actor.getFlag(MODULE_ID, "forms") ?? []).filter(f => f.uuid !== form.uuid);
   const removed = (actor.getFlag(MODULE_ID, "removed") ?? []).filter(uuid => uuid !== form.uuid);
-  forms.push({ uuid: form.uuid, name: form.name, img: form.img, cr: form.cr, fly: form.fly });
+  forms.push({ uuid: form.uuid, name: form.name, img: form.img, cr: form.cr, fly: form.fly, swim: form.swim });
   await actor.update({ [`flags.${MODULE_ID}`]: { forms, removed } });
 }
 
@@ -343,7 +468,8 @@ class FormsManager extends HandlebarsApplicationMixin(ApplicationV2) {
   #search = "";
 
   get title() {
-    return `${game.i18n.localize("WILDSHAPEHELPER.ManageForms")}: ${this.actor.name}`;
+    const key = isLegacy(this.actor) ? "ManageFavorites" : "ManageForms";
+    return `${game.i18n.localize(`WILDSHAPEHELPER.${key}`)}: ${this.actor.name}`;
   }
 
   async _prepareContext(options) {
@@ -356,16 +482,14 @@ class FormsManager extends HandlebarsApplicationMixin(ApplicationV2) {
     const candidates = (await getBeastIndex())
       .filter(f => !knownUuids.has(f.uuid) && !knownNames.has(f.name.toLowerCase()) && isFormAllowed(f, limits))
       .map(f => ({ ...withLabels(f), search: f.name.toLowerCase() }));
-    const maxCR = Math.max(...limits.map(l => l.cr));
-    const maxFlyCR = Math.max(...limits.filter(l => l.fly).map(l => l.cr));
     return {
+      legacy: isLegacy(this.actor),
       known,
       candidates,
       max,
       full: !!max && (known.length >= max),
       search: this.#search,
-      maxCR: Number.isFinite(maxCR) ? dnd5e.utils.formatCR(maxCR) : null,
-      maxFlyCR: Number.isFinite(maxFlyCR) ? dnd5e.utils.formatCR(maxFlyCR) : null
+      ...describeLimits(limits)
     };
   }
 

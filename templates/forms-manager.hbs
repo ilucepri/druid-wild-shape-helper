@@ -1,9 +1,9 @@
 <div class="wsh-manager-body">
 
-    {{!-- Forms the druid knows now --}}
+    {{!-- Forms the druid knows now (2024) or favorites (2014) --}}
     <section class="wsh-column">
         <h3 class="wsh-title">
-            {{ localize "WILDSHAPEHELPER.KnownForms" }}
+            {{#if legacy}}{{ localize "WILDSHAPEHELPER.Favorites" }}{{else}}{{ localize "WILDSHAPEHELPER.KnownForms" }}{{/if}}
             <span class="wsh-count {{#if full}}wsh-full{{/if}}">{{ known.length }}{{#if max}} / {{ max }}{{/if}}</span>
         </h3>
         <ul class="wsh-column-list">
@@ -15,6 +15,7 @@
                     <span class="wsh-form-cr">
                         {{ localize "WILDSHAPEHELPER.CR" }} {{ crLabel }}
                         {{#if fly}}<i class="fas fa-feather" data-tooltip="WILDSHAPEHELPER.Flies" inert></i>{{/if}}
+                        {{#if swim}}<i class="fas fa-water" data-tooltip="WILDSHAPEHELPER.Swims" inert></i>{{/if}}
                     </span>
                 </div>
                 <button type="button" class="unbutton wsh-row-button" data-action="removeForm"
@@ -23,7 +24,9 @@
                 </button>
             </li>
             {{else}}
-            <li class="wsh-empty">{{ localize "WILDSHAPEHELPER.NoForms" }}</li>
+            <li class="wsh-empty">
+                {{#if @root.legacy}}{{ localize "WILDSHAPEHELPER.NoFavorites" }}{{else}}{{ localize "WILDSHAPEHELPER.NoForms" }}{{/if}}
+            </li>
             {{/each}}
         </ul>
     </section>
@@ -36,6 +39,10 @@
                 {{#if maxCR}}{{ localize "WILDSHAPEHELPER.CR" }} ≤ {{ maxCR }}{{/if}}
                 · <i class="fas fa-feather" inert></i>
                 {{#if maxFlyCR}}{{ localize "WILDSHAPEHELPER.CR" }} ≤ {{ maxFlyCR }}{{else}}<i class="fas fa-ban" inert></i>{{/if}}
+                {{#if legacy}}
+                · <i class="fas fa-water" inert></i>
+                {{#if maxSwimCR}}{{ localize "WILDSHAPEHELPER.CR" }} ≤ {{ maxSwimCR }}{{else}}<i class="fas fa-ban" inert></i>{{/if}}
+                {{/if}}
             </span>
         </h3>
         <input type="search" class="wsh-search" value="{{ search }}"
@@ -50,6 +57,7 @@
                     <span class="wsh-form-cr">
                         {{ localize "WILDSHAPEHELPER.CR" }} {{ crLabel }}
                         {{#if fly}}<i class="fas fa-feather" data-tooltip="WILDSHAPEHELPER.Flies" inert></i>{{/if}}
+                        {{#if swim}}<i class="fas fa-water" data-tooltip="WILDSHAPEHELPER.Swims" inert></i>{{/if}}
                         · {{ sourceLabel }}
                     </span>
                 </div>

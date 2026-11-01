@@ -8,6 +8,16 @@ Foundry VTT module for the dnd5e system (2024 rules). It adds a **Wild Shape** t
 - While transformed, the button becomes **Revert form**.
 - **Choose forms** window: remove known forms and learn new ones from every Beast in your compendiums that fits your level's CR and flying limits, up to your known-forms maximum (4 / 6 / 8).
 
+## 2014 rules
+
+Druids whose Wild Shape feature (or druid class) is marked as 2014 rules, or worlds set to the legacy rules, get a 2014 mode:
+
+- No known forms: the **Wild Shape** picker lists every eligible Beast in your compendiums, with a search box. The tab keeps a list of **favorite forms** (no limit) that appear first.
+- Limits follow the 2014 Beast Shapes table, including "no swimming speed" before 4th level, and Circle of the Moon (CR 1 from 2nd level, druid level ÷ 3 from 6th).
+- You take the beast's hit points: no kept HP, no temporary HP, no Moon minimum AC and no spells in beast form.
+
+When a Wild Shape / Circle Forms feature has no transform profiles (for example an imported or hand-made feature), the module uses the Beast Shapes table for the druid's level and rules.
+
 ## Install
 
 In Foundry, go to *Add-on Modules → Install Module* and paste this manifest URL:

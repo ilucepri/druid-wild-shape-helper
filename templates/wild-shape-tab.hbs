@@ -31,6 +31,13 @@
                 <i class="fas fa-feather" inert></i>
                 {{#if maxFlyCR}}{{ localize "WILDSHAPEHELPER.CR" }} ≤ {{ maxFlyCR }}{{else}}<i class="fas fa-ban" inert></i>{{/if}}
             </span>
+            {{#if legacy}}
+            <span class="wsh-pill" data-tooltip="WILDSHAPEHELPER.Swimming">
+                <i class="fas fa-water" inert></i>
+                {{#if maxSwimCR}}{{ localize "WILDSHAPEHELPER.CR" }} ≤ {{ maxSwimCR }}{{else}}<i class="fas fa-ban" inert></i>{{/if}}
+            </span>
+            <span class="wsh-pill" data-tooltip="WILDSHAPEHELPER.LegacyHint">2014</span>
+            {{/if}}
         </div>
 
         {{#if owner}}
@@ -46,15 +53,16 @@
         {{/if}}
     </header>
 
-    {{!-- Known forms --}}
+    {{!-- Known forms (2024) or favorite forms (2014) --}}
     <h3 class="wsh-title">
         <span>
-            {{ localize "WILDSHAPEHELPER.KnownForms" }}
+            {{#if legacy}}{{ localize "WILDSHAPEHELPER.Favorites" }}{{else}}{{ localize "WILDSHAPEHELPER.KnownForms" }}{{/if}}
             <span class="wsh-count">{{ forms.length }}{{#if maxKnown}} / {{ maxKnown }}{{/if}}</span>
         </span>
         {{#if owner}}
         <button type="button" class="wsh-manage" data-wsh-action="manage">
-            <i class="fas fa-list-check" inert></i> {{ localize "WILDSHAPEHELPER.ManageForms" }}
+            <i class="fas fa-list-check" inert></i>
+            {{#if legacy}}{{ localize "WILDSHAPEHELPER.ManageFavorites" }}{{else}}{{ localize "WILDSHAPEHELPER.ManageForms" }}{{/if}}
         </button>
         {{/if}}
     </h3>
@@ -67,6 +75,7 @@
                 <span class="wsh-form-cr">
                     {{ localize "WILDSHAPEHELPER.CR" }} {{ crLabel }}
                     {{#if fly}}<i class="fas fa-feather" data-tooltip="WILDSHAPEHELPER.Flies" inert></i>{{/if}}
+                    {{#if swim}}<i class="fas fa-water" data-tooltip="WILDSHAPEHELPER.Swims" inert></i>{{/if}}
                 </span>
             </div>
             {{#unless allowed}}
@@ -80,7 +89,9 @@
             {{/if}}
         </li>
         {{else}}
-        <li class="wsh-empty">{{ localize "WILDSHAPEHELPER.NoForms" }}</li>
+        <li class="wsh-empty">
+            {{#if @root.wildShape.legacy}}{{ localize "WILDSHAPEHELPER.NoFavorites" }}{{else}}{{ localize "WILDSHAPEHELPER.NoForms" }}{{/if}}
+        </li>
         {{/each}}
     </ul>
     {{#if owner}}

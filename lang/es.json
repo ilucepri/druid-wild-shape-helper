@@ -30,6 +30,13 @@
     "Search": "Buscar bestias…",
     "Add": "Aprender esta forma",
     "NoCandidates": "No hay más bestias disponibles a tu nivel.",
-    "FullHint": "Ya conoces el máximo de formas. Quita una para aprender otra."
+    "FullHint": "Ya conoces el máximo de formas. Quita una para aprender otra.",
+    "Favorites": "Formas favoritas",
+    "ManageFavorites": "Elegir favoritas",
+    "NoFavorites": "Aún no hay formas favoritas. Con las reglas 2014 puedes transformarte igualmente en cualquier bestia permitida.",
+    "OtherBeasts": "Otras bestias",
+    "Swimming": "Formas nadadoras",
+    "Swims": "Tiene velocidad de nado",
+    "LegacyHint": "Reglas 2014: cualquier bestia que hayas visto, y usas los puntos de golpe de la bestia."
   }
 }

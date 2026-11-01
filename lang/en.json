@@ -30,6 +30,13 @@
     "Search": "Search beasts…",
     "Add": "Learn this form",
     "NoCandidates": "No more beasts available at your level.",
-    "FullHint": "You already know the maximum number of forms. Remove one to learn another."
+    "FullHint": "You already know the maximum number of forms. Remove one to learn another.",
+    "Favorites": "Favorite forms",
+    "ManageFavorites": "Choose favorites",
+    "NoFavorites": "No favorite forms yet. With the 2014 rules you can still turn into any eligible beast.",
+    "OtherBeasts": "Other beasts",
+    "Swimming": "Swimming forms",
+    "Swims": "Has a swim speed",
+    "LegacyHint": "2014 rules: any beast you have seen, and you take the beast's hit points."
   }
 }

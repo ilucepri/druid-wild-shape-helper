@@ -236,3 +236,19 @@
   font-weight: bold;
   opacity: 1;
 }
+
+.wsh-dialog .wsh-search {
+  margin-bottom: 0.5rem;
+}
+
+.wsh-dialog .wsh-choice[hidden] {
+  display: none;
+}
+
+.wsh-dialog .wsh-choice-group {
+  margin: 0.5rem 0 0.15rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  font-size: var(--font-size-12, 12px);
+  text-transform: uppercase;
+  opacity: 0.75;
+}
