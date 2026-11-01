@@ -42,6 +42,12 @@
     "Unfavorite": "Quitar de favoritas",
     "TransformInto": "Transformarte en esta forma",
     "Loading": "Cargando bestias…",
-    "NoResults": "Ninguna bestia coincide con la búsqueda."
+    "NoResults": "Ninguna bestia coincide con la búsqueda.",
+    "Settings": {
+      "Packs": {
+        "Name": "Compendios de bestias",
+        "Hint": "Compendios de los que salen las bestias de Forma Salvaje. Déjalo vacío para usar todos los compendios de actores. Los jugadores necesitan al menos permiso de Observador en estos compendios para verlas."
+      }
+    }
   }
 }

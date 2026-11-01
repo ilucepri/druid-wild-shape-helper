@@ -28,6 +28,8 @@ In Foundry, go to *Add-on Modules → Install Module* and paste this manifest UR
 https://github.com/ilucepri/druid-wild-shape-helper/releases/latest/download/module.json
 ```
 
+In the module settings, the GM can choose which Actor compendiums the beasts come from (empty = all of them). Players need at least Observer permission on those compendiums.
+
 Players need the GM to enable **Allow Polymorphing** in the dnd5e settings, and they need permission to create actors.
 
 Compatibility: Foundry v13–v14, dnd5e 5.x (tested against 5.3.3).

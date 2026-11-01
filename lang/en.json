@@ -42,6 +42,12 @@
     "Unfavorite": "Remove from favorites",
     "TransformInto": "Wild Shape into this form",
     "Loading": "Loading beasts…",
-    "NoResults": "No beasts match your search."
+    "NoResults": "No beasts match your search.",
+    "Settings": {
+      "Packs": {
+        "Name": "Beast compendiums",
+        "Hint": "Compendiums the beasts for Wild Shape come from. Leave empty to use every Actor compendium. Players need at least Observer permission on these compendiums to see them."
+      }
+    }
   }
 }

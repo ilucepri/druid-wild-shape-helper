@@ -28,6 +28,35 @@ Hooks.once("init", () => {
   foundry.applications.handlebars.loadTemplates([TEMPLATE, MANAGER_TEMPLATE]);
 });
 
+// Registered at setup: the compendium list for the choices only exists once packs are initialized.
+Hooks.once("setup", () => {
+  const { SetField, StringField } = foundry.data.fields;
+  const packageTitle = ({ packageType, packageName }) => {
+    if ( packageType === "system" ) return game.system.title;
+    if ( packageType === "world" ) return game.world.title;
+    return game.modules.get(packageName)?.title ?? packageName;
+  };
+  const choices = Object.fromEntries(game.packs.filter(p => p.documentName === "Actor")
+    .map(p => [p.collection, `${p.metadata.label} (${packageTitle(p.metadata)})`])
+    .sort((a, b) => a[1].localeCompare(b[1])));
+  game.settings.register(MODULE_ID, "beastPacks", {
+    name: "WILDSHAPEHELPER.Settings.Packs.Name",
+    hint: "WILDSHAPEHELPER.Settings.Packs.Hint",
+    scope: "world",
+    config: true,
+    type: new SetField(new StringField({ choices })),
+    default: [],
+    onChange: () => {
+      beastIndex = undefined;
+      for ( const app of foundry.applications.instances.values() ) {
+        if ( (app instanceof dnd5e.applications.actor.CharacterActorSheet) || (app instanceof FormsManager) ) {
+          if ( app.rendered ) app.render();
+        }
+      }
+    }
+  });
+});
+
 Hooks.on("dnd5e.prepareSheetContext", (sheet, partId, context) => {
   if ( partId === TAB_ID ) context.wildShape = hasWildShape(sheet.actor) ? prepareContext(sheet) : null;
 });
@@ -131,7 +160,22 @@ function getMaxKnown(actor) {
 let beastIndex;
 
 /**
- * Every Beast in the Actor compendiums the user can see, one entry per name (module packs win over the system's).
+ * Compendiums chosen in the module settings. A stored compendium that no longer exists (its module was
+ * uninstalled) can fail validation, so fall back to every compendium instead of breaking the tab.
+ * @returns {Set<string>}
+ */
+function getChosenPacks() {
+  try {
+    return new Set(game.settings.get(MODULE_ID, "beastPacks") ?? []);
+  } catch(err) {
+    console.warn(`${MODULE_ID} | Could not read the beast compendium setting, using every compendium.`, err);
+    return new Set();
+  }
+}
+
+/**
+ * Every Beast in the Actor compendiums chosen by the GM (all of them when none is chosen) that the user can see,
+ * one entry per name (module packs win over the system's).
  * @returns {Promise<object[]>}
  */
 async function getBeastIndex() {
@@ -140,7 +184,9 @@ async function getBeastIndex() {
     "img", "system.details.cr", "system.details.type.value",
     "system.attributes.movement.fly", "system.attributes.movement.swim"
   ];
+  const chosen = getChosenPacks();
   const packs = game.packs.filter(p => (p.documentName === "Actor") && p.visible)
+    .filter(p => !chosen.size || chosen.has(p.collection))
     .sort((a, b) => (a.metadata.packageType === "system") - (b.metadata.packageType === "system"));
   const byName = new Map();
   for ( const pack of packs ) {
