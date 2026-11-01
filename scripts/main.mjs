@@ -46,16 +46,42 @@ Hooks.once("setup", () => {
     config: true,
     type: new SetField(new StringField({ choices })),
     default: [],
-    onChange: () => {
-      beastIndex = undefined;
-      for ( const app of foundry.applications.instances.values() ) {
-        if ( (app instanceof dnd5e.applications.actor.CharacterActorSheet) || (app instanceof FormsManager) ) {
-          if ( app.rendered ) app.render();
-        }
-      }
-    }
+    onChange: () => resetBeasts({ reload: true })
+  });
+  game.settings.register(MODULE_ID, "beastRules", {
+    name: "WILDSHAPEHELPER.Settings.Rules.Name",
+    hint: "WILDSHAPEHELPER.Settings.Rules.Hint",
+    scope: "world",
+    config: true,
+    type: String,
+    choices: {
+      auto: "WILDSHAPEHELPER.Settings.Rules.Auto",
+      all: "WILDSHAPEHELPER.Settings.Rules.All",
+      2014: "WILDSHAPEHELPER.Settings.Rules.Legacy",
+      2024: "WILDSHAPEHELPER.Settings.Rules.Modern"
+    },
+    default: "auto",
+    onChange: () => resetBeasts()
   });
 });
+
+/**
+ * Forget the cached beast lists and re-render the open sheets and form managers.
+ * @param {object} [options]
+ * @param {boolean} [options.reload]  Also re-read the compendium indexes (the chosen compendiums changed).
+ */
+function resetBeasts({ reload=false }={}) {
+  if ( reload ) {
+    beastEntries = undefined;
+    beastLoad = undefined;
+  }
+  beastLists.clear();
+  for ( const app of foundry.applications.instances.values() ) {
+    if ( (app instanceof dnd5e.applications.actor.CharacterActorSheet) || (app instanceof FormsManager) ) {
+      if ( app.rendered ) app.render();
+    }
+  }
+}
 
 Hooks.on("dnd5e.prepareSheetContext", (sheet, partId, context) => {
   if ( partId === TAB_ID ) context.wildShape = hasWildShape(sheet.actor) ? prepareContext(sheet) : null;
@@ -157,7 +183,11 @@ function getMaxKnown(actor) {
   return level >= 8 ? 8 : level >= 4 ? 6 : 4;
 }
 
-let beastIndex;
+/** Every Beast entry from the chosen compendiums, before filtering by rules and removing duplicates. */
+let beastEntries;
+let beastLoad;
+/** Beast lists per rules filter ("2014", "2024" or "all"), duplicates removed. */
+const beastLists = new Map();
 
 /**
  * Compendiums chosen in the module settings. A stored compendium that no longer exists (its module was
@@ -174,38 +204,85 @@ function getChosenPacks() {
 }
 
 /**
- * Every Beast in the Actor compendiums chosen by the GM (all of them when none is chosen) that the user can see,
- * one entry per name (module packs win over the system's).
+ * Read every Beast in the Actor compendiums chosen by the GM (all of them when none is chosen) that the user
+ * can see. Module packs come before the system's so they win when names repeat.
  * @returns {Promise<object[]>}
  */
-async function getBeastIndex() {
-  if ( beastIndex ) return beastIndex;
-  const fields = [
-    "img", "system.details.cr", "system.details.type.value",
-    "system.attributes.movement.fly", "system.attributes.movement.swim"
-  ];
-  const chosen = getChosenPacks();
-  const packs = game.packs.filter(p => (p.documentName === "Actor") && p.visible)
-    .filter(p => !chosen.size || chosen.has(p.collection))
-    .sort((a, b) => (a.metadata.packageType === "system") - (b.metadata.packageType === "system"));
-  const byName = new Map();
-  for ( const pack of packs ) {
-    for ( const entry of await pack.getIndex({ fields }) ) {
-      const get = key => foundry.utils.getProperty(entry, key);
-      const key = entry.name.toLowerCase();
-      if ( (entry.type !== "npc") || (get("system.details.type.value") !== "beast") || byName.has(key) ) continue;
-      byName.set(key, {
-        uuid: entry.uuid,
-        name: entry.name,
-        img: entry.img,
-        cr: get("system.details.cr") ?? 0,
-        fly: (get("system.attributes.movement.fly") ?? 0) > 0,
-        swim: (get("system.attributes.movement.swim") ?? 0) > 0,
-        sourceLabel: pack.metadata.label
-      });
+function loadBeastEntries() {
+  beastLoad ??= (async () => {
+    const fields = [
+      "img", "system.details.cr", "system.details.type.value", "system.source.rules",
+      "system.attributes.movement.fly", "system.attributes.movement.swim"
+    ];
+    const chosen = getChosenPacks();
+    const packs = game.packs.filter(p => (p.documentName === "Actor") && p.visible)
+      .filter(p => !chosen.size || chosen.has(p.collection))
+      .sort((a, b) => (a.metadata.packageType === "system") - (b.metadata.packageType === "system"));
+    const entries = [];
+    for ( const pack of packs ) {
+      for ( const entry of await pack.getIndex({ fields }) ) {
+        const get = key => foundry.utils.getProperty(entry, key);
+        if ( (entry.type !== "npc") || (get("system.details.type.value") !== "beast") ) continue;
+        entries.push({
+          uuid: entry.uuid,
+          name: entry.name,
+          img: entry.img,
+          cr: get("system.details.cr") ?? 0,
+          fly: (get("system.attributes.movement.fly") ?? 0) > 0,
+          swim: (get("system.attributes.movement.swim") ?? 0) > 0,
+          rules: get("system.source.rules") || "",
+          sourceLabel: pack.metadata.label
+        });
+      }
     }
+    return beastEntries = entries;
+  })();
+  return beastLoad;
+}
+
+/**
+ * Which rules the beasts offered to this druid must use, from the module setting.
+ * SRD 5.1 monsters are marked 2014 and SRD 5.2 monsters 2024.
+ * @param {Actor5e} actor  Original actor.
+ * @returns {string|null}  "2014", "2024", or null for any rules.
+ */
+function getRulesFilter(actor) {
+  const mode = game.settings.get(MODULE_ID, "beastRules");
+  if ( mode === "all" ) return null;
+  if ( (mode === "2014") || (mode === "2024") ) return mode;
+  return isLegacy(actor) ? "2014" : "2024";
+}
+
+/**
+ * Beasts for this druid, one per name, if the compendiums are already loaded.
+ * Beasts without rules information are always included.
+ * @param {Actor5e} actor  Original actor.
+ * @returns {object[]|undefined}
+ */
+function cachedBeasts(actor) {
+  if ( !beastEntries ) return undefined;
+  const rules = getRulesFilter(actor);
+  const key = rules ?? "all";
+  if ( !beastLists.has(key) ) {
+    const byName = new Map();
+    for ( const beast of beastEntries ) {
+      if ( rules && beast.rules && (beast.rules !== rules) ) continue;
+      const name = beast.name.toLowerCase();
+      if ( !byName.has(name) ) byName.set(name, beast);
+    }
+    beastLists.set(key, sortForms(Array.from(byName.values())));
   }
-  return beastIndex = sortForms(Array.from(byName.values()));
+  return beastLists.get(key);
+}
+
+/**
+ * Beasts for this druid, one per name, loading the compendiums if needed.
+ * @param {Actor5e} actor  Original actor.
+ * @returns {Promise<object[]>}
+ */
+async function getBeasts(actor) {
+  await loadBeastEntries();
+  return cachedBeasts(actor);
 }
 
 /**
@@ -322,12 +399,13 @@ function prepareContext(sheet) {
   let beastGroups = null;
   let loading = false;
   if ( legacy && !transformed ) {
-    if ( beastIndex ) beastGroups = groupByCR(original, beastIndex.filter(f => isFormAllowed(f, limits)), forms, {
+    const beasts = cachedBeasts(original);
+    if ( beasts ) beastGroups = groupByCR(original, beasts.filter(f => isFormAllowed(f, limits)), forms, {
       canTransform, canAdd: owner
     });
     else {
       loading = true;
-      getBeastIndex().then(() => sheet.rendered && sheet.render());
+      loadBeastEntries().then(() => sheet.rendered && sheet.render());
     }
   }
 
@@ -543,7 +621,7 @@ async function onDrop(event, actor) {
  * @param {string} uuid
  */
 async function addBeast(actor, uuid) {
-  const beast = (await getBeastIndex()).find(f => f.uuid === uuid);
+  const beast = (await getBeasts(actor)).find(f => f.uuid === uuid);
   if ( beast ) await addForm(actor, beast);
 }
 
@@ -643,7 +721,7 @@ class FormsManager extends HandlebarsApplicationMixin(ApplicationV2) {
     const known = getKnownForms(this.actor).map(withLabels);
     const knownUuids = new Set(known.map(f => f.uuid));
     const knownNames = new Set(known.map(f => f.name.toLowerCase()));
-    const candidates = (await getBeastIndex())
+    const candidates = (await getBeasts(this.actor))
       .filter(f => !knownUuids.has(f.uuid) && !knownNames.has(f.name.toLowerCase()) && isFormAllowed(f, limits))
       .map(f => ({ ...withLabels(f), search: f.name.toLowerCase() }));
     return {
@@ -676,7 +754,7 @@ class FormsManager extends HandlebarsApplicationMixin(ApplicationV2) {
 
   async #findCandidate(target) {
     const uuid = target.closest("[data-uuid]")?.dataset.uuid;
-    return (await getBeastIndex()).find(f => f.uuid === uuid);
+    return (await getBeasts(this.actor)).find(f => f.uuid === uuid);
   }
 
   static async #onAddForm(event, target) {

@@ -47,6 +47,14 @@
       "Packs": {
         "Name": "Compendios de bestias",
         "Hint": "Compendios de los que salen las bestias de Forma Salvaje. Déjalo vacío para usar todos los compendios de actores. Los jugadores necesitan al menos permiso de Observador en estos compendios para verlas."
+      },
+      "Rules": {
+        "Name": "Reglas de las bestias",
+        "Hint": "Versión de reglas que deben usar las bestias (los monstruos del SRD 5.1 son 2014 y los del SRD 5.2 son 2024). Las bestias sin información de reglas salen siempre.",
+        "Auto": "Las mismas que cada druida",
+        "All": "Todas",
+        "Legacy": "Solo 2014 (SRD 5.1)",
+        "Modern": "Solo 2024 (SRD 5.2)"
       }
     }
   }

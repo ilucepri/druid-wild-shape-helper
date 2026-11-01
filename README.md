@@ -28,7 +28,7 @@ In Foundry, go to *Add-on Modules → Install Module* and paste this manifest UR
 https://github.com/ilucepri/druid-wild-shape-helper/releases/latest/download/module.json
 ```
 
-In the module settings, the GM can choose which Actor compendiums the beasts come from (empty = all of them). Players need at least Observer permission on those compendiums.
+In the module settings, the GM can choose which Actor compendiums the beasts come from (empty = all of them). Players need at least Observer permission on those compendiums. The GM can also filter beasts by rules version: by default each druid only sees beasts of their own rules (2014 / SRD 5.1 or 2024 / SRD 5.2), or choose all, only 2014 or only 2024.
 
 Players need the GM to enable **Allow Polymorphing** in the dnd5e settings, and they need permission to create actors.
 

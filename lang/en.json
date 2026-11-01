@@ -47,6 +47,14 @@
       "Packs": {
         "Name": "Beast compendiums",
         "Hint": "Compendiums the beasts for Wild Shape come from. Leave empty to use every Actor compendium. Players need at least Observer permission on these compendiums to see them."
+      },
+      "Rules": {
+        "Name": "Beast rules",
+        "Hint": "Which rules version the beasts must use (SRD 5.1 monsters are 2014, SRD 5.2 monsters are 2024). Beasts without rules information always appear.",
+        "Auto": "Same as each druid's rules",
+        "All": "All",
+        "Legacy": "Only 2014 (SRD 5.1)",
+        "Modern": "Only 2024 (SRD 5.2)"
       }
     }
   }
